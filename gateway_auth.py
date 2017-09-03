@@ -4,7 +4,11 @@
 # TODO: However, first somehow check how many people are on the channel?
 # TODO: Enable Access Manager again, perhaps do a READ-ONLY gateway_auth channel -- so no messages sent here_now
 # TODO: Preceeding messages after authentication must be on UUID channels, so we know any messages are from established UUID channels and need replies.
+# TODO: Need a way to destroy channel after a leave event or a timeout event (UUID channel no longer in use..)
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+import string, random
+
 import logging
 import pubnub
 
@@ -28,28 +32,37 @@ pubnub = PubNub(pnconfig)
 
 # TODO: Handling incoming data properly - Create new channels for UUIDs
 
+def id_generator(size=10, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
+
 def my_publish_callback(envelope, status):
     # Check whether request successfully completed or not
     if not status.is_error():
-        print(envelope.message)
+        # print(envelope.message)
         pass  # Message successfully published to specified channel.
     else:
         pass  # Handle message publish error. Check 'category' property to find out possible issue
         # because of which request did fail.
         # Request can be resent using: [status retry];
 
-
 class MySubscribeCallback(SubscribeCallback):
     def presence(self, pubnub, presence):
+        print(presence.occupancy)
+        # Create new channel on the UUID of the user who has just joined.
+        print("Presence channel is: " + presence.channel)
+        if presence.channel == "gateway_auth":
+            envelope = pubnub.here_now().channels(presence.uuid).include_uuids(True).include_state(True).sync() # FIXME> Check this!
+            print(envelope)
 
-        print(presence.uuid) # capture newly joined user's uuid so can make a new subscription channel to listen on.
+            authkey = id_generator()
+            #pubnub.grant().channels([presence.uuid]).auth_keys(authkey).read(True).write(True).sync() # TODO: Turn on Access Manager
+            pubnub.add_channel_to_channel_group().channels(presence.uuid).channel_group("comm_channels").sync()
 
-        pubnub.subscribe().channels(presence.uuid).with_presence().execute()
-
-        # TODO: Pass the auth key I'll make here
-        pubnub.publish().channel(presence.uuid).message("Hello!!").async(my_publish_callback)
-
-        pass  # handle incoming presence data
+            # TODO: Perhaps in this message to clients also include announcement channel so they can join to receive global updates :- must use auth key
+            pubnub.publish().channel(presence.uuid).message({"auth_key":authkey, "sub_key":pnconfig.subscribe_key, "pub_key":pnconfig.publish_key}).async(my_publish_callback)
+        else:
+            pubnub.publish().channel(presence.uuid).message({"error":"Too many occupants in channel, regenerate UUID."}).async(my_publish_callback)
+            pubnub.remove_channel_from_channel_group().channels(presence.uuid).channel_group("comm_channel").sync()
 
     def status(self, pubnub, status):
         if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
@@ -101,5 +114,4 @@ pubnub.add_listener(listener)
 pubnub.grant().channels(["gateway_auth"]).auth_keys("auth").read(True).write(True).sync()
 
 pubnub.subscribe().channels("gateway_auth").with_presence().execute()
-result = listener.wait_for_message_on('gateway_auth')
-print(result.message)
+pubnub.subscribe().channel_groups("comm_channels").with_presence().execute()
