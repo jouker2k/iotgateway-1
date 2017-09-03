@@ -38,7 +38,6 @@ def id_generator(size=10, chars=string.ascii_uppercase + string.digits):
 def my_publish_callback(envelope, status):
     # Check whether request successfully completed or not
     if not status.is_error():
-        # print(envelope.message)
         pass  # Message successfully published to specified channel.
     else:
         pass  # Handle message publish error. Check 'category' property to find out possible issue
