@@ -7,11 +7,12 @@
 # TODO: Need a way to destroy channel after a leave event or a timeout event (UUID channel no longer in use..)
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import string, random
+import string
+import random
 
 import logging
 import pubnub
- 
+
 from pubnub.callbacks import SubscribeCallback
 from pubnub.enums import PNStatusCategory
 from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
@@ -32,8 +33,10 @@ pubnub = PubNub(pnconfig)
 
 # TODO: Handling incoming data properly - Create new channels for UUIDs
 
+
 def id_generator(size=10, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
+
 
 def my_publish_callback(envelope, status):
     # Check whether request successfully completed or not
@@ -44,24 +47,30 @@ def my_publish_callback(envelope, status):
         # because of which request did fail.
         # Request can be resent using: [status retry];
 
+
 class MySubscribeCallback(SubscribeCallback):
     def presence(self, pubnub, presence):
         print(presence.occupancy)
         # Create new channel on the UUID of the user who has just joined.
         print("Presence channel is: " + presence.channel)
         if presence.channel == "gateway_auth":
-            envelope = pubnub.here_now().channels(presence.uuid).include_uuids(True).include_state(True).sync() # FIXME> Check this!
+            envelope = pubnub.here_now().channels(presence.uuid).include_uuids(
+                True).include_state(True).sync()  # FIXME> Check this!
             print(envelope)
 
             authkey = id_generator()
-            #pubnub.grant().channels(Update[presence.uuid]).auth_keys(authkey).read(True).write(True).sync() # TODO: Turn on Access Manager
-            pubnub.add_channel_to_channel_group().channels(presence.uuid).channel_group("comm_channels").sync()
+            # pubnub.grant().channels(Update[presence.uuid]).auth_keys(authkey).read(True).write(True).sync() # TODO: Turn on Access Manager
+            pubnub.add_channel_to_channel_group().channels(
+                presence.uuid).channel_group("comm_channels").sync()
 
             # TODO: Perhaps in this message to clients also include announcement channel so they can join to receive global updates :- must use auth key
-            pubnub.publish().channel(presence.uuid).message({"auth_key":authkey, "sub_key":pnconfig.subscribe_key, "pub_key":pnconfig.publish_key}).async(my_publish_callback)
+            pubnub.publish().channel(presence.uuid).message(
+                {"auth_key": authkey, "sub_key": pnconfig.subscribe_key, "pub_key": pnconfig.publish_key}).async(my_publish_callback)
         else:
-            pubnub.publish().channel(presence.uuid).message({"error":"Too many occupants in channel, regenerate UUID."}).async(my_publish_callback)
-            pubnub.remove_channel_from_channel_group().channels(presence.uuid).channel_group("comm_channel").sync()
+            pubnub.publish().channel(presence.uuid).message(
+                {"error": "Too many occupants in channel, regenerate UUID."}).async(my_publish_callback)
+            pubnub.remove_channel_from_channel_group().channels(
+                presence.uuid).channel_group("comm_channel").sync()
 
     def status(self, pubnub, status):
         if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
@@ -71,7 +80,7 @@ class MySubscribeCallback(SubscribeCallback):
             # Connect event. You can do stuff like publish, and know you'll get it.
             # Or just use the connected event to confirm you are subscribed for
             # UI / internal notifications, etc
-            #pubnub.publish().channel("gateway_auth").message("hello!!").async(my_publish_callback)
+            # pubnub.publish().channel("gateway_auth").message("hello!!").async(my_publish_callback)
             pass
         elif status.category == PNStatusCategory.PNReconnectedCategory:
             pass
@@ -85,9 +94,8 @@ class MySubscribeCallback(SubscribeCallback):
     def message(self, pubnub, message):
         pass  # Handle new message stored in message.message
 
-
 # REVIEW: Eventually do something with this.. Remove or whatever.
-#def here_now_callback(result, status):
+# def here_now_callback(result, status):
 #     if status.is_error():
 #         # handle error
 #         return
@@ -108,9 +116,12 @@ class MySubscribeCallback(SubscribeCallback):
 
 # Add listener to auth channel
 listener = MySubscribeCallback()
+
+
 pubnub.add_listener(listener)
 
-pubnub.grant().channels(["gateway_auth"]).auth_keys("auth").read(True).write(True).sync()
+pubnub.grant().channels(["gateway_auth"]).auth_keys(
+    "auth").read(True).write(True).sync()
 
 pubnub.subscribe().channels("gateway_auth").with_presence().execute()
 pubnub.subscribe().channel_groups("comm_channels").with_presence().execute()
