@@ -54,7 +54,7 @@ class MySubscribeCallback(SubscribeCallback):
             print(envelope)
 
             authkey = id_generator()
-            #pubnub.grant().channels([presence.uuid]).auth_keys(authkey).read(True).write(True).sync() # TODO: Turn on Access Manager
+            #pubnub.grant().channels(Update[presence.uuid]).auth_keys(authkey).read(True).write(True).sync() # TODO: Turn on Access Manager
             pubnub.add_channel_to_channel_group().channels(presence.uuid).channel_group("comm_channels").sync()
 
             # TODO: Perhaps in this message to clients also include announcement channel so they can join to receive global updates :- must use auth key
