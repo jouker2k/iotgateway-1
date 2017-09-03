@@ -31,7 +31,7 @@ pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
 pubnub = PubNub(pnconfig)
 
 # TODO: Handling incoming data properly - Create new channels for UUIDs
- 
+  
 def id_generator(size=10, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
