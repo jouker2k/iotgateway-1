@@ -10,7 +10,7 @@ pnconfig = PNConfiguration()
 
 pnconfig.subscribe_key = 'sub-c-f420fbf8-860e-11e7-9bef-b2d410151acd'
 pnconfig.publish_key = 'pub-c-06728f1a-f12a-45b9-a501-70e1beeb88d1'
-pnconfig.uuid = 'test_client3'
+pnconfig.uuid = 'test_client112'
 
 pubnub = PubNub(pnconfig)
 
