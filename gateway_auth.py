@@ -13,6 +13,7 @@
 import string
 import random
 import json
+import time
 
 import logging
 import pubnub
@@ -45,33 +46,65 @@ def my_publish_callback(envelope, status): # More info on publish callback -> ht
 
 class MySubscribeCallback(SubscribeCallback):
     def presence(self, pubnub, presence):
+        print("\n\n\n\n\n\n\n\n\n\nUUID IS: " + presence.uuid)
 
-        if presence.channel == "gateway_auth":
+        if presence.channel == "gateway_auth": # Only do this when someone joins the gateway_auth channel.
             authkey = id_generator() # This is used for the randomly generated auth key
 
+            print("\n\n\n\n\n\n\n\n\nOK IN HERE\n\n\n\n\n\n")
+
+            pubnub.grant().channels(presence.uuid).read(True).write(True).sync()
+            pubnub.subscribe().channels(presence.uuid).with_presence().execute()
             envelope = pubnub.here_now().channels(presence.uuid).include_uuids(True).include_state(True).sync()
+            pubnub.publish().channel('gateway_auth').message('OK?').async(my_publish_callback)
+            users_in_channel = envelope.result.total_occupancy
 
-            # TODO
-            print("\n\n\n\n------------------UUIDs present-------------------------")
-            users = envelope.result.channels[0].occupants
-            for occupant in users:
-                print(occupant.uuid) # - lists all uuids in channel, if more than one can later 'blacklist' ones not meant to be in the channel -> "do not serve, suspicious"
-            print("Occupancy of channel:" + str(envelope.result.total_occupancy)) # gets number of users in the channel - safety check
-            print("----------------------------------------------------------------\n\n\n")
+            if users_in_channel > 1:
+                uuids_in_channel = []
+                users = envelope.result.channels[0].occupants
 
-            # pubnub.grant().channels(Update[presence.uuid]).auth_keys(authkey).read(True).write(True).sync() # TODO
+                for occupant in users: # If there is indeed multiple people in the channel only then we bother to check who.
+                    print(occupant.uuid) # - lists all uuids in channel, if more than one can later 'blacklist' ones not meant to be in the channel -> "do not serve, suspicious"
+                    uuids_in_channel.append(occupant.uuid)
 
-            # Add channel to group, making it easier to access/list later.
-            pubnub.add_channel_to_channel_group().channels(
-                presence.uuid).channel_group("comm_channels").sync()
+                if presence.uuid in uuids_in_channel:
+                    uuids_in_channel.remove(presence.uuid)
 
-            pubnub.publish().channel(presence.uuid).message(
-                {"auth_key": authkey, "sub_key": pnconfig.subscribe_key, "pub_key": pnconfig.publish_key}).async(my_publish_callback) # Send data over 1-1 channel
-        else:
-            pubnub.publish().channel(presence.uuid).message(
-                {"error": "Too many occupants in channel, regenerate UUID."}).async(my_publish_callback) # + Maybe something later to blacklist suspicious UUIDs/devices.
-            pubnub.remove_channel_from_channel_group().channels(
-                presence.uuid).channel_group("comm_channel").sync() # Remove, as the channel is not trustworthy.
+                    # TODO: Save somewhere locally the suspicious UUID to read back in later - Need condition at the top to check then if this is the UUID of the user trying to auth to deny them.
+
+                pubnub.publish().channel(presence.uuid).message(
+                    {"error": "Too many occupants in channel, regenerate UUID."}).async(my_publish_callback) #
+
+            elif users_in_channel < 1:
+                print("Internal error: no users in the UUID channel: {}".format(presence.uuid))
+                pass
+
+            else: # We can send the keys now
+
+                # Add channel to group, making it easier to access/list later.
+                pubnub.add_channel_to_channel_group().channels(
+                    presence.uuid).channel_group("comm_channels").sync()
+
+                # Only need to send auth key (because permissions will change) and pub key (as they will only be supplied to subscribe key to begin with)
+                pubnub.publish().channel(presence.uuid).message(
+                    {"auth_key": authkey, "pub_key": pnconfig.publish_key}).async(my_publish_callback) # Send data over 1-1 channel
+
+                print("\n\n\n\nAUTHING {}".format(presence.uuid))
+                #pubnub.grant().channels(presence.uuid).read(False).write(False).sync()
+
+                print("\n\n\n\nAUTHING {}".format(presence.uuid))
+                #pubnub.grant().channels(presence.uuid).auth_keys(authkey).read(True).write(True).sync()
+
+                 # TODO
+
+        elif presence.channel != "gateway_auth":
+            pubnub.publish().channel(presence.uuid).message({"auth_key": 'lol', "pub_key": pnconfig.publish_key}).async(my_publish_callback)
+
+            pubnub.grant().channels(presence.uuid).read(False).write(False).sync()
+            pubnub.grant().channels(presence.uuid).auth_keys('lol').read(True).write(True).sync()
+
+            time.sleep(10)
+            pubnub.publish().channel(presence.uuid).message('hello?').async(my_publish_callback)
 
     def status(self, pubnub, status): # More info on categories -> https://www.pubnub.com/docs/python/pubnub-python-sdk
         if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
@@ -95,8 +128,9 @@ listener = MySubscribeCallback()
 
 pubnub.add_listener(listener)
 
-pubnub.grant().channels(["gateway_auth"]).auth_keys(
-    "auth").read(True).write(True).sync()
+pubnub.grant().read(True).write(True).sync()
+pubnub.grant().channels(["gateway_auth"]).read(True).write(False).sync()
+#pubnub.grant().channel_groups("comm_channels").read(True).write(False).sync()
 
 pubnub.subscribe().channels("gateway_auth").with_presence().execute()
 pubnub.subscribe().channel_groups("comm_channels").with_presence().execute()
