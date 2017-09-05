@@ -83,27 +83,6 @@ class MySubscribeCallback(SubscribeCallback):
                 print("\n\nInternal error: no users in the UUID channel: {}".format(presence.uuid))
                 pass
 
-            # else: # We can send the keys now
-            #     print("\n\nSending on UUID channel: {}\n\n\n".format(presence.uuid))
-            #     authkey = id_generator()
-            #     channelName = id_generator()
-            #     # TODO: Generate a random string and send it to the client, making it the new SECURE channel of communication
-            #     # TODO: Along with this new random channel name, send the auth key etc.
-            #
-            #     # Add channel to group, making it easier to access/list later.
-            #     pubnub.add_channel_to_channel_group().channels(
-            #         presence.uuid).channel_group("comm_channels").sync()
-            #
-            #     # Only need to send auth key (because permissions will change) and pub key (as they will only be supplied to subscribe key to begin with)
-            #     pubnub.publish().channel(presence.uuid).message(
-            #         {"channel": channelName, "auth_key": authkey, "pub_key": pnconfig.publish_key}).async(my_publish_callback) # Send data over 1-1 channel
-            #
-            #     pubnub.grant().channels(channelName).read(False).write(False).manage(True).sync()
-            #     pubnub.grant().channels(channelName).auth_keys(authkey).read(True).write(True).manage(True).sync()
-            #     pnconfig.auth_key = authkey
-            #     pubnub = PubNub(pnconfig)
-            #     pubnub.subscribe().channels(channelName).execute()
-
         elif presence.channel != "gateway_auth" and presence.uuid == presence.channel:
             print('\n\n\nOK USER IS IN UUID CHANNEL\n\n\n')
             authkey = id_generator()
