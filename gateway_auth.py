@@ -26,9 +26,12 @@ pubnub.set_stream_logger('pubnub', logging.DEBUG)
 pnconfig = PNConfiguration()
 
 # Keys - Perhaps move somewhere remote
-pnconfig.subscribe_key = 'sub-c-f420fbf8-860e-11e7-9bef-b2d410151acd'
-pnconfig.publish_key = 'pub-c-06728f1a-f12a-45b9-a501-70e1beeb88d1'
-pnconfig.secret_key = 'sec-c-MmVjMzllOTQtNGQyMC00M2M5LWE5OGMtOWU2YTM3Mzk1MmQ3'
+# pnconfig.subscribe_key = 'sub-c-f420fbf8-860e-11e7-9bef-b2d410151acd'
+# pnconfig.publish_key = 'pub-c-06728f1a-f12a-45b9-a501-70e1beeb88d1'
+# pnconfig.secret_key = 'sec-c-MmVjMzllOTQtNGQyMC00M2M5LWE5OGMtOWU2YTM3Mzk1MmQ3'
+pnconfig.subscribe_key = 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579'
+pnconfig.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
+pnconfig.secret_key = 'sec-c-YmZlMzkyYTctZDg1NC00ZTY0LWE3YzctNTkzOGRjZjk0OTI5'
 pnconfig.ssl = True
 pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
 pnconfig.uuid = 'gateway'
@@ -46,19 +49,19 @@ def my_publish_callback(envelope, status): # More info on publish callback -> ht
 
 class MySubscribeCallback(SubscribeCallback):
     def presence(self, pubnub, presence):
-        print("\n\n\n\n\n\n\n\n\n\nUUID IS: " + presence.uuid)
-
-        if presence.channel == "gateway_auth": # Only do this when someone joins the gateway_auth channel.
-            authkey = id_generator() # This is used for the randomly generated auth key
-
-            print("\n\n\n\n\n\n\n\n\nOK IN HERE\n\n\n\n\n\n")
+        if presence.channel == "gateway_auth":
+            print("\n\n\nUUID: {}\n\n\n".format(presence.uuid))
 
             pubnub.grant().channels(presence.uuid).read(True).write(True).sync()
             pubnub.subscribe().channels(presence.uuid).with_presence().execute()
+
+            pubnub.publish().channel('gateway_auth').message(presence.uuid).async(my_publish_callback)
+
+            # Check UUID channel info
             envelope = pubnub.here_now().channels(presence.uuid).include_uuids(True).include_state(True).sync()
-            pubnub.publish().channel('gateway_auth').message('OK?').async(my_publish_callback)
             users_in_channel = envelope.result.total_occupancy
 
+            # Someone could be spying
             if users_in_channel > 1:
                 uuids_in_channel = []
                 users = envelope.result.channels[0].occupants
@@ -75,36 +78,55 @@ class MySubscribeCallback(SubscribeCallback):
                 pubnub.publish().channel(presence.uuid).message(
                     {"error": "Too many occupants in channel, regenerate UUID."}).async(my_publish_callback) #
 
+            # Nothing to do here.
             elif users_in_channel < 1:
-                print("Internal error: no users in the UUID channel: {}".format(presence.uuid))
+                print("\n\nInternal error: no users in the UUID channel: {}".format(presence.uuid))
                 pass
 
-            else: # We can send the keys now
+            # else: # We can send the keys now
+            #     print("\n\nSending on UUID channel: {}\n\n\n".format(presence.uuid))
+            #     authkey = id_generator()
+            #     channelName = id_generator()
+            #     # TODO: Generate a random string and send it to the client, making it the new SECURE channel of communication
+            #     # TODO: Along with this new random channel name, send the auth key etc.
+            #
+            #     # Add channel to group, making it easier to access/list later.
+            #     pubnub.add_channel_to_channel_group().channels(
+            #         presence.uuid).channel_group("comm_channels").sync()
+            #
+            #     # Only need to send auth key (because permissions will change) and pub key (as they will only be supplied to subscribe key to begin with)
+            #     pubnub.publish().channel(presence.uuid).message(
+            #         {"channel": channelName, "auth_key": authkey, "pub_key": pnconfig.publish_key}).async(my_publish_callback) # Send data over 1-1 channel
+            #
+            #     pubnub.grant().channels(channelName).read(False).write(False).manage(True).sync()
+            #     pubnub.grant().channels(channelName).auth_keys(authkey).read(True).write(True).manage(True).sync()
+            #     pnconfig.auth_key = authkey
+            #     pubnub = PubNub(pnconfig)
+            #     pubnub.subscribe().channels(channelName).execute()
 
-                # Add channel to group, making it easier to access/list later.
-                pubnub.add_channel_to_channel_group().channels(
-                    presence.uuid).channel_group("comm_channels").sync()
+        elif presence.channel != "gateway_auth" and presence.uuid == presence.channel:
+            print('\n\n\nOK USER IS IN UUID CHANNEL\n\n\n')
+            authkey = id_generator()
+            channelName = id_generator()
 
-                # Only need to send auth key (because permissions will change) and pub key (as they will only be supplied to subscribe key to begin with)
-                pubnub.publish().channel(presence.uuid).message(
-                    {"auth_key": authkey, "pub_key": pnconfig.publish_key}).async(my_publish_callback) # Send data over 1-1 channel
+            # Add channel to group, making it easier to access/list later.
+            # pubnub.add_channel_to_channel_group().channels(
+            #     presence.uuid).channel_group("comm_channels").sync()
 
-                print("\n\n\n\nAUTHING {}".format(presence.uuid))
-                #pubnub.grant().channels(presence.uuid).read(False).write(False).sync()
+            # Only need to send auth key (because permissions will change) and pub key (as they will only be supplied to subscribe key to begin with)
+            pubnub.publish().channel(presence.uuid).message(
+                {"channel": channelName, "auth_key": authkey, "pub_key": pnconfig.publish_key}).async(my_publish_callback) # Send data over 1-1 channel
 
-                print("\n\n\n\nAUTHING {}".format(presence.uuid))
-                #pubnub.grant().channels(presence.uuid).auth_keys(authkey).read(True).write(True).sync()
+            pubnub.grant().channels(channelName).read(False).write(False).manage(True).sync()
+            pubnub.grant().channels(channelName).auth_keys(authkey).read(True).write(True).manage(True).sync()
+            # pnconfig.auth_key = authkey
+            # pubnub = PubNub(pnconfig)
+            pubnub.subscribe().channels(channelName).execute()
 
-                 # TODO
-
-        elif presence.channel != "gateway_auth":
-            pubnub.publish().channel(presence.uuid).message({"auth_key": 'lol', "pub_key": pnconfig.publish_key}).async(my_publish_callback)
-
-            pubnub.grant().channels(presence.uuid).read(False).write(False).sync()
-            pubnub.grant().channels(presence.uuid).auth_keys('lol').read(True).write(True).sync()
-
-            time.sleep(10)
-            pubnub.publish().channel(presence.uuid).message('hello?').async(my_publish_callback)
+        elif presence.channel != "gateway_auth" and presence.uuid != presence.channel:
+            #msg = "This is the {} channel".format(presence.channel)
+            #pubnub.publish().channel(presence.channel).message(msg).async(my_publish_callback)
+            pass
 
     def status(self, pubnub, status): # More info on categories -> https://www.pubnub.com/docs/python/pubnub-python-sdk
         if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
@@ -128,9 +150,10 @@ listener = MySubscribeCallback()
 
 pubnub.add_listener(listener)
 
-pubnub.grant().read(True).write(True).sync()
-pubnub.grant().channels(["gateway_auth"]).read(True).write(False).sync()
-#pubnub.grant().channel_groups("comm_channels").read(True).write(False).sync()
+pubnub.grant().channels(["gateway_auth"]).read(True).write(True).manage(True).sync()
 
-pubnub.subscribe().channels("gateway_auth").with_presence().execute()
-pubnub.subscribe().channel_groups("comm_channels").with_presence().execute()
+pubnub.subscribe().channels(["gateway_auth"]).with_presence().execute()
+
+# pnconfig.auth_key = 'UJARR4SCD1'
+# pubnub = PubNub(pnconfig)
+# pubnub.subscribe().channels(["E0BXKLR4T9"]).with_presence().execute()
