@@ -6,11 +6,15 @@ from pubnub.pubnub import PubNub
 pnconfig = PNConfiguration()
 
 def init(auth):
-    pnconfig.uuid = 'thissATgCha_een99-elee12elx12'
+    pnconfig.uuid = 'thissACha_31een2991w7pw012'
     pnconfig.auth_key = auth
     pnconfig.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
     pnconfig.subscribe_key = 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579'
     pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
+    pnconfig.ssl = True
+    pnconfig.subscribe_timeout = 9^99
+    pnconfig.connect_timeout = 9^99
+    pnconfig.non_subscribe_timeout = 9^99
 
     pubnub = PubNub(pnconfig)
 
@@ -42,7 +46,6 @@ class MySubscribeCallback(SubscribeCallback):
         pubnub.add_listener(MySubscribeCallback())
 
         pubnub.subscribe().channels(channel).execute()
-        pubnub.publish().channel(channel).message("S H A Z A I B ! ! ! ! ! ! ! ! ! ! ! ! ! !").async(my_publish_callback)
 
     def presence(self, pubnub, presence):
         #print(presence.channel)
@@ -70,8 +73,8 @@ class MySubscribeCallback(SubscribeCallback):
         if message.message == pnconfig.uuid:
             pubnub.subscribe().channels(pnconfig.uuid).execute()
         if 'auth_key' in str(message.message):
+
             self.auth(message.message)
-            pubnub.unsubscribe_all()
 
         print(message.message)
         pass  # Handle new message stored in message.message
@@ -80,10 +83,10 @@ class MySubscribeCallback(SubscribeCallback):
 
 
 # # #
-
-pubnub = init('')
-pubnub.add_listener(MySubscribeCallback())
-pubnub.subscribe().channels(["gateway_auth"]).execute()
+if __name__ == "__main__":
+    pubnub = init('')
+    pubnub.add_listener(MySubscribeCallback())
+    pubnub.subscribe().channels(["gateway_auth"]).execute()
 
 # result = my_listener.wait_for_message_on("gateway_auth")
 # print(result.message)
