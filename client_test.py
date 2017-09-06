@@ -6,7 +6,7 @@ from pubnub.pubnub import PubNub
 pnconfig = PNConfiguration()
 
 def init(auth):
-    pnconfig.uuid = 'thissACha_31een2991w7pw012'
+    pnconfig.uuid = 'thissACha_31esllellsen2991w7pw012'
     pnconfig.auth_key = auth
     pnconfig.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
     pnconfig.subscribe_key = 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579'
@@ -33,6 +33,8 @@ def my_publish_callback(envelope, status):
 
 
 class MySubscribeCallback(SubscribeCallback):
+    authed = False
+
     def auth(self, auth_info):
 
         print("auth info: " + str(auth_info))
@@ -46,6 +48,8 @@ class MySubscribeCallback(SubscribeCallback):
         pubnub.add_listener(MySubscribeCallback())
 
         pubnub.subscribe().channels(channel).execute()
+
+        self.authed = True
 
     def presence(self, pubnub, presence):
         #print(presence.channel)
@@ -72,7 +76,7 @@ class MySubscribeCallback(SubscribeCallback):
     def message(self, pubnub, message):
         if message.message == pnconfig.uuid:
             pubnub.subscribe().channels(pnconfig.uuid).execute()
-        if 'auth_key' in str(message.message):
+        if 'auth_key' in str(message.message) and not self.authed:
 
             self.auth(message.message)
 
