@@ -96,7 +96,7 @@ class MySubscribeCallback(SubscribeCallback):
             pubnub.publish().channel(presence.uuid).message(
                 {"channel": channelName, "auth_key": authkey, "pub_key": pnconfig.publish_key}).async(my_publish_callback) # Send data over 1-1 channel
 
-            pubnub.grant().channels(channelName).read(False).write(False).manage(True).sync()
+            #pubnub.grant().channels(channelName).read(False).write(False).manage(True).sync()
             pubnub.grant().channels(channelName).auth_keys(authkey).read(True).write(True).manage(True).sync()
             # pnconfig.auth_key = authkey
             # pubnub = PubNub(pnconfig)
@@ -125,7 +125,6 @@ class MySubscribeCallback(SubscribeCallback):
 
 # Add listener to auth channel
 listener = MySubscribeCallback()
-
 
 pubnub.add_listener(listener)
 
