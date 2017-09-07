@@ -6,7 +6,7 @@ from pubnub.pubnub import PubNub
 pnconfig = PNConfiguration()
 
 def init(auth):
-    pnconfig.uuid = 'thissACha_31esllellsen2991w7pw012'
+    pnconfig.uuid = 'thissACha_31eslledddllsen2991w7pw012'
     pnconfig.auth_key = auth
     pnconfig.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
     pnconfig.subscribe_key = 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579'

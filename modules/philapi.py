@@ -2,6 +2,7 @@ from pubnub.callbacks import SubscribeCallback
 from pubnub.enums import PNStatusCategory
 from pubnub.pnconfiguration import PNConfiguration
 from pubnub.pubnub import PubNub
+from modules import *
 
 import requests
 import json
@@ -21,6 +22,8 @@ pubnub = PubNub(pnconfig)
 
 class ButtonNotPressed(Exception):
     pass
+
+
 
 def bridge_ip():
     list_bridges = requests.get('https://www.meethue.com/api/nupnp')
@@ -101,6 +104,8 @@ def light_brightness(brightness, bridge_key, bulb_id):
 
         print(req.text)
 
+def test():
+    print('hi')
 
 # NOTE: Discard later:
 
