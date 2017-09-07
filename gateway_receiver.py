@@ -2,8 +2,6 @@
 '''
 __author__ = "sgript"
 
-
-
 Expected request format:
 {
 'enquiry': '',               # Boolean, if used all rest parameters are unneeded, module_name can be optionally checked.
@@ -19,6 +17,7 @@ Expected request format:
 TODO: This is to be handled by a single-service function (likely messages) branching to applicable functions.
 
 '''
+
 import sys
 from importlib import util
 import json
