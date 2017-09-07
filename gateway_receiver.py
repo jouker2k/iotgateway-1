@@ -20,7 +20,8 @@ TODO: This is to be handled by a single-service function (likely messages) branc
 
 '''
 import sys
-import importlib
+from importlib import util
+import json
 from helpers import module_methods
 from modules import philapi
 
@@ -29,30 +30,38 @@ from pubnub.callbacks import SubscribeCallback
 from pubnub.pubnub import PubNub, SubscribeListener
 from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
 
-class Receiver(object):
+
+def my_publish_callback(envelope, status):
+    if not status.is_error():
+        print("message err")
+        pass
+    else:
+        print("message success")
+        pass
+
+class Receiver(SubscribeCallback):
     def __init__(self):
         # TODO: Need to define a way to find this auth key.
         # Passed straight from the gateway_auth?
         # Text file?
         # Etc. IMPORTANT
         self.pnconfig = PNConfiguration()
-
+        self.channel = ''
         self.pnconfig.uuid = self.uuid = 'gateway'
         self.pnconfig.subscribe_key = self.subscribe_key = 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579'
         self.pnconfig.publish_key = self.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
         self.pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
         self.pnconfig.ssl = True
         self.pnconfig.subscribe_timeout = self.pnconfig.connect_timeout = self.pnconfig.non_subscribe_timeout = 9^99
+        self.pubnub = PubNub(self.pnconfig)
 
     def subscribe_channel(self, channel_name, auth_key):
         self.pnconfig.auth_key = auth_key
-        pubnub = PubNub(self.pnconfig)
-        pubnub.add_listener(MySubscribeCallback())
+        self.channel = channel_name
+        self.pubnub = PubNub(self.pnconfig)
+        self.pubnub.add_listener(self)
 
-        pubnub.subscribe().channels(channel_name).execute()
-
-
-class MySubscribeCallback(SubscribeCallback):
+        self.pubnub.subscribe().channels(channel_name).execute()
 
     def presence(self, pubnub, presence):
         #print(presence.channel)
@@ -73,20 +82,20 @@ class MySubscribeCallback(SubscribeCallback):
             pass
 
     def message(self, pubnub, message):
-        print(message.message)
         msg = message.message
 
         if 'enquiry' in msg and msg['enquiry'] is True:
             # TODO: Still need something to list available modules.
             if msg['module_name']:
-                module_found = True if importlib.util.find_spec("modules."+msg['module_name']) != None else False
+                module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
 
                 # Maybe since there was something supplied, instead of False just call a publish to tell them
                 # They mispelled or something.
 
                 if module_found:
                     # (1) Get module's methods (cannot be inside a class)
-                    methods = module_methods.find(msg['module_name'])
+                    methods = module_methods.find(msg['module_name']) # NOTE: May not need this if using the below (getattr)
+
 
                     # (2) This will get a class's methods and actually allow you to run them
                     # Although I got the names above, this will actually help RUN them–KEEP/Use.
@@ -108,11 +117,14 @@ class MySubscribeCallback(SubscribeCallback):
 
                     dictionary_of_functions = {}
                     for method in methods:
-                        dictionary_of_functions[method] = list(method.__code__.co_varnames)
+                        function = getattr(module, method)
+                        dictionary_of_functions[method] = list(function.__code__.co_varnames)
 
-                    available_functions_resp = json.dumps(dictionary_of_functions)
+                    available_functions_resp = json.loads(json.dumps(dictionary_of_functions))
+                    print(available_functions_resp)
 
-
+                    pubnub.publish().channel(message.channel).message("Test").sync()
+                    pubnub.publish().channel(message.channel).message(available_functions_resp).async(my_publish_callback)
 
                     # (3) This will get the arguments:
                     # print(zn.__code__.co_varnames)
@@ -128,10 +140,10 @@ class MySubscribeCallback(SubscribeCallback):
 
         # TODO: IMPORTANT: Before carrying out calls, need to negotiate some security policy...
 
-
+        print(message.message)
         pass
 
 
 if __name__ == "__main__":
     receiver = Receiver()
-    receiver.subscribe_channel('D07UJN6FTD', 'UDWP95OYR3')
+    receiver.subscribe_channel('I50ANAY3F6', '3ZABY058UU')

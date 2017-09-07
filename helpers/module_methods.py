@@ -16,7 +16,6 @@ def parse_ast(filename):
 def find(module):
     if module[-3:] != '.py':
         module = module + '.py'
-    print(module)
     tree = parse_ast(module)
 
     functions = []
