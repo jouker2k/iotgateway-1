@@ -1,38 +1,38 @@
+'''
+__author__ = "sgript"
+'''
+
+import json
+
 from pubnub.enums import PNStatusCategory
-from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
+from pubnub.callbacks import SubscribeCallback
 from pubnub.pubnub import PubNub, SubscribeListener
+from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
 
-pnconfig = PNConfiguration()
+class Client(SubscribeCallback):
 
-class Client(object):
-    def __init__(self, uuid, auth_key, channel, subscribe_key, publish_key):
-        pnconfig.auth_key = self.auth_key = auth_key
-        pnconfig.uuid = self.uuid = uuid
-        pnconfig.subscribe_key = self.subscribe_key = subscribe_key
-        pnconfig.publish_key = self.publish_key = publish_key
-        pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
-        pnconfig.ssl = True
-        pnconfig.subscribe_timeout = pnconfig.connect_timeout = pnconfig.non_subscribe_timeout = 9^99
+    def __init__(self, uuid, subscribe_key, publish_key):
+        self.pnconfig = PNConfiguration()
+        self.pnconfig.uuid = uuid
+        self.pnconfig.subscribe_key = subscribe_key
+        self.pnconfig.publish_key = publish_key
+        self.pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
+        self.pnconfig.ssl = True
+        self.pnconfig.subscribe_timeout = self.pnconfig.connect_timeout = self.pnconfig.non_subscribe_timeout = 9^99
+        self.pubnub = PubNub(self.pnconfig)
 
-        self.chanenl = channel
-        print("Auth key {} initialised".format(self.name))
-        print("Secure channel: {}".format(self.channel))
+    def subscribe_channel(self, channel_name, auth_key):
+        self.pnconfig.auth_key = auth_key
+        self.channel = channel_name
+        self.pubnub = PubNub(self.pnconfig)
+        self.pubnub.add_listener(self) # Adding the listener as itself as it contains the SubscribeCallback object.
 
-        self.my_listener = SubscribeListener()
+        self.pubnub.subscribe().channels(channel_name).execute()
 
-
-        def list_devices(self):
-
-
-
-def my_publish_callback(envelope, status):
-    if not status.is_error():
-        pass
-    else:
-        pass
-
-# Maybe just make one class for this in a separate file?
-class MySubscribeCallback(SubscribeCallback):
+    def publish_request(self, channel, msg):
+        # REVIEW: May need to format py to json
+        msg_json = json.loads(json.dumps(msg))
+        self.pubnub.publish().channel(channel).message(msg_json).async(my_publish_callback)
 
     def presence(self, pubnub, presence):
         #print(presence.channel)
@@ -54,3 +54,18 @@ class MySubscribeCallback(SubscribeCallback):
     def message(self, pubnub, message):
         print(message.message)
         pass
+
+def my_publish_callback(envelope, status):
+    if not status.is_error():
+        print("message success")
+        pass
+    else:
+        print("message error")
+        pass
+
+
+if __name__ == "__main__":
+    client = Client('client_test', 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579', 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f')
+    client.subscribe_channel('I50ANAY3F6', '3ZABY058UU')
+
+    client.publish_request('I50ANAY3F6', {"enquiry": True, "module_name": "philapi"})

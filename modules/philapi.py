@@ -104,9 +104,6 @@ def light_brightness(brightness, bridge_key, bulb_id):
 
         print(req.text)
 
-def test():
-    print('hi')
-
 # NOTE: Discard later:
 
 #     # Check whether request successfully completed or not

@@ -1,6 +1,6 @@
 
 '''
-__author__ = "@sgript"
+__author__ = "sgript"
 
 
 
@@ -22,7 +22,7 @@ TODO: This is to be handled by a single-service function (likely messages) branc
 import sys
 from importlib import util
 import json
-from helpers import module_methods
+from helpers import module_methods, list_modules as lm
 from modules import philapi
 
 from pubnub.enums import PNStatusCategory
@@ -46,7 +46,7 @@ class Receiver(SubscribeCallback):
         # Text file?
         # Etc. IMPORTANT
         self.pnconfig = PNConfiguration()
-        self.channel = ''
+        self.channel = '' # REVIEW: PROBABLY DO NOT NEED THIS HERE
         self.pnconfig.uuid = self.uuid = 'gateway'
         self.pnconfig.subscribe_key = self.subscribe_key = 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579'
         self.pnconfig.publish_key = self.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
@@ -86,7 +86,7 @@ class Receiver(SubscribeCallback):
 
         if 'enquiry' in msg and msg['enquiry'] is True:
             # TODO: Still need something to list available modules.
-            if msg['module_name']:
+            if 'module_name' in msg:
                 module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
 
                 # Maybe since there was something supplied, instead of False just call a publish to tell them
@@ -121,17 +121,19 @@ class Receiver(SubscribeCallback):
                         dictionary_of_functions[method] = list(function.__code__.co_varnames)
 
                     available_functions_resp = json.loads(json.dumps(dictionary_of_functions))
-                    print(available_functions_resp)
 
-                    pubnub.publish().channel(message.channel).message("Test").sync()
                     pubnub.publish().channel(message.channel).message(available_functions_resp).async(my_publish_callback)
 
                     # (3) This will get the arguments:
                     # print(zn.__code__.co_varnames)
 
 
-            # Else if no module is supplied, need to do a longer process
-            # Must iterate over all modules and find their functions and return in a publish.
+            # Else if no module name supplied just show list of them available.
+            else:
+                dictionary_of_modules = json.loads(json.dumps({"modules": lm.list_modules()}))
+
+                pubnub.publish().channel(message.channel).message(dictionary_of_modules).async(my_publish_callback)
+
 
         else:
             # TODO: Handle error message/publish back
