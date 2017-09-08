@@ -147,4 +147,4 @@ class Receiver(SubscribeCallback):
 
 if __name__ == "__main__":
     receiver = Receiver()
-    receiver.subscribe_channel('I50ANAY3F6', '3ZABY058UU')
+    receiver.subscribe_channel('NO40ACE6I6', 'V3SIPF92JQ')

@@ -21,6 +21,7 @@ pubnub = PubNub(pnconfig)
 # TODO: For Philips API calls do better error returns, such as passing on those returned via the API.
 
 class ButtonNotPressed(Exception):
+    
     pass
 
 

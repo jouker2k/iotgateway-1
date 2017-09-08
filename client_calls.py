@@ -66,6 +66,6 @@ def my_publish_callback(envelope, status):
 
 if __name__ == "__main__":
     client = Client('client_test', 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579', 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f')
-    client.subscribe_channel('I50ANAY3F6', '3ZABY058UU')
+    client.subscribe_channel('NO40ACE6I6', 'V3SIPF92JQ')
 
-    client.publish_request('I50ANAY3F6', {"enquiry": True, "module_name": "philapi"})
+    client.publish_request('NO40ACE6I6', {"enquiry": True, "module_name": "philapi"})
