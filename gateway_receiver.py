@@ -19,8 +19,9 @@ TODO: This is to be handled by a single-service function (likely messages) branc
 '''
 
 import sys
-from importlib import util
 import json
+import inspect
+from importlib import util
 from helpers import module_methods, list_modules as lm
 from modules import philapi
 
@@ -92,40 +93,19 @@ class Receiver(SubscribeCallback):
                 # They mispelled or something.
 
                 if module_found:
-                    # (1) Get module's methods (cannot be inside a class)
-                    methods = module_methods.find(msg['module_name']) # NOTE: May not need this if using the below (getattr)
 
+                    methods = module_methods.find(msg['module_name']) # Gets module's methods (cannot be inside a class)
 
-                    # (2) This will get a class's methods and actually allow you to run them
-                    # Although I got the names above, this will actually help RUN them–KEEP/Use.
-                    # NOTE:
-
-                    # >>> app = sys.modules['modules.philips_api']
-                    # >>> fn = getattr(app, 'test')
-                    # >>> test
-                    # Traceback (most recent call last):
-                    #   File "<stdin>", line 1, in <module>
-                    # NameError: name 'test' is not defined
-                    # >>> test()
-                    # Traceback (most recent call last):
-                    #   File "<stdin>", line 1, in <module>
-                    # NameError: name 'test' is not defined
-                    # >>> fn()
-                    # hi
                     module = sys.modules['modules.' + msg['module_name']]
 
                     dictionary_of_functions = {}
                     for method in methods:
                         function = getattr(module, method)
-                        dictionary_of_functions[method] = list(function.__code__.co_varnames)
+                        dictionary_of_functions[method] = inspect.getargspec(function)[0]
 
                     available_functions_resp = json.loads(json.dumps(dictionary_of_functions))
 
                     pubnub.publish().channel(message.channel).message(available_functions_resp).async(my_publish_callback)
-
-                    # (3) This will get the arguments:
-                    # print(zn.__code__.co_varnames)
-
 
             # Else if no module name supplied just show list of them available.
             else:
