@@ -1,30 +1,15 @@
-from pubnub.callbacks import SubscribeCallback
-from pubnub.enums import PNStatusCategory
-from pubnub.pnconfiguration import PNConfiguration
-from pubnub.pubnub import PubNub
-from modules import *
-
 import requests
 import json
 
-pnconfig = PNConfiguration()
-
-pnconfig.subscribe_key = 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579'
-pnconfig.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
-pnconfig.uuid = '012345'
-pnconfig.auth_key = 'sgriptkey'
-pnconfig.secret_key = 'sec-c-YmZlMzkyYTctZDg1NC00ZTY0LWE3YzctNTkzOGRjZjk0OTI5'
-
-pubnub = PubNub(pnconfig)
 
 # TODO: HANDLE RESPONSES TO GIVE TO CLIENT (ERROR CODES)
 # TODO: For Philips API calls do better error returns, such as passing on those returned via the API.
 
 class ButtonNotPressed(Exception):
-    
     pass
 
-
+# REVIEW TEMPORARY PLACEMENT OF KEY
+bulb_key = "PEuzGOSH9rFqcjqDOCREmpeBpdT-kc-zbFY3tyXh"
 
 def bridge_ip():
     list_bridges = requests.get('https://www.meethue.com/api/nupnp')
@@ -80,14 +65,12 @@ def show_hues(bridge_key):
 
     print(', '.join(map(str, bulbs_available)))
 
-def light_switch(state, bridge_key, bulb_id):
+def light_switch(state, bulb_id, bridge_key = bulb_key):
     api_url = 'http://{0}/api/{1}/lights/{2}/state'.format(bridge_ip(), bridge_key, bulb_id)
-
     data = json.dumps({"on":state})
     req = requests.put(api_url, data)
 
-    print(req.text)
-
+    return(req.text)
 
 def light_brightness(brightness, bridge_key, bulb_id):
     api_url = 'http://{0}/api/{1}/lights/{2}/state'.format(bridge_ip(), bridge_key, bulb_id)
@@ -104,52 +87,3 @@ def light_brightness(brightness, bridge_key, bulb_id):
             print('Bulb {0} brightness changed to {1}'.format(bulb_id, brightness))
 
         print(req.text)
-
-# NOTE: Discard later:
-
-#     # Check whether request successfully completed or not
-#     if not status.is_error():
-#         print("no error?")
-#         pass  # Message successfully published to specified channel.
-#     else:
-#         print("error?")
-#         pass  # Handle message publish error. Check 'category' property to find out possible issue
-#         # because of which request did fail.
-#         # Request can be resent using: [status retry];
-#
-#
-# class MySubscribeCallback(SubscribeCallback):
-#     def presence(self, pubnub, presence):
-#         pass  # handle incoming presence data
-#
-#     def status(self, pubnub, status):
-#         if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
-#             pass  # This event happens when radio / connectivity is lost
-#
-#         elif status.category == PNStatusCategory.PNConnectedCategory:
-#             # Connect event. You can do stuff like publish, and know you'll get it.
-#             # Or just use the connected event to confirm you are subscribed for
-#             # UI / internal notifications, etc
-#             print("sending stuff")
-#             pubnub.publish().channel("sgriptchannel").message("hello!!").async(my_publish_callback)
-#         elif status.category == PNStatusCategory.PNReconnectedCategory:
-#             pass
-#             # Happens as part of our regular operation. This event happens when
-#             # radio / connectivity is lost, then regained.
-#         elif status.category == PNStatusCategory.PNDecryptionErrorCategory:
-#             pass
-#             # Handle message decryption error. Probably client configured to
-#             # encrypt messages and on live data feed it received plain text.
-#
-#     def message(self, pubnub, message):
-#         print(message.message)
-#         pass  # Handle new message stored in message.message
-#
-#
-# pubnub.add_listener(MySubscribeCallback())
-# pubnub.subscribe().channels('sgriptchannel').execute()
-
-#light_brightness(50, 'iPXdeY5dqiXuAavI6qVtfVzX1V1cs441EIxz9u57', 1)
-#show_hues('iPXdeY5dqiXuAavI6qVtfVzX1V1cs441EIxz9u57')
-
-#light_on()

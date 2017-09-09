@@ -1,15 +1,27 @@
 '''
 __author__ = "sgript"
+
+
+    Expected request format:
+    {
+    'enquiry': '',               # Boolean, if used all rest parameters are unneeded, module_name can be optionally checked.
+    'module_name': '',           # Use this to find applicable methods?
+    'id': '',                    # If applicable, i.e. Philips Hue
+    'device_type': '',           # Will define fixed categories later.
+    'requested_function': '',    # NOTE: See ast module ***
+    'parameters': ''
+    }
+
 '''
+from multiprocessing import Pool
+
 
 import json
-
 from pubnub.enums import PNStatusCategory
-from pubnub.callbacks import SubscribeCallback
 from pubnub.pubnub import PubNub, SubscribeListener
 from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
 
-class Client(SubscribeCallback):
+class Client(object):
 
     def __init__(self, uuid, subscribe_key, publish_key):
         self.pnconfig = PNConfiguration()
@@ -20,52 +32,67 @@ class Client(SubscribeCallback):
         self.pnconfig.ssl = True
         self.pnconfig.subscribe_timeout = self.pnconfig.connect_timeout = self.pnconfig.non_subscribe_timeout = 9^99
         self.pubnub = PubNub(self.pnconfig)
+        self.my_listener = SubscribeListener()
+        self.pubnub.add_listener(self.my_listener)
 
     def subscribe_channel(self, channel_name, auth_key):
         self.pnconfig.auth_key = auth_key
         self.channel = channel_name
-        self.pubnub = PubNub(self.pnconfig)
-        self.pubnub.add_listener(self) # Adding the listener as itself as it contains the SubscribeCallback object.
 
         self.pubnub.subscribe().channels(channel_name).execute()
 
     def publish_request(self, channel, msg):
         # REVIEW: May need to format py to json
         msg_json = json.loads(json.dumps(msg))
-        self.pubnub.publish().channel(channel).message(msg_json).async(my_publish_callback)
+        self.pubnub.publish().channel(channel).message(msg_json).sync()
 
-    def presence(self, pubnub, presence):
-        #print(presence.channel)
-        pass  # handle incoming presence data
+        call = self.my_listener.wait_for_message_on(channel)
+        result = self.my_listener.wait_for_message_on(channel)
 
-    def status(self, pubnub, status):
-        if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
-            pass  # This event happens when radio / connectivity is lost
+        return(result.message)
 
-        elif status.category == PNStatusCategory.PNConnectedCategory:
-            pass
+    def enquire_modules(self):
+        client_.publish_request(self.channel, {"enquiry": True})
 
-        elif status.category == PNStatusCategory.PNReconnectedCategory:
-            pass
+    def enquire_module_methods(self, module):
+        return(client.publish_request(self.channel, {"enquiry": True, "module_name": module}))
 
-        elif status.category == PNStatusCategory.PNDecryptionErrorCategory:
-            pass
+class SmartDevice(object):
+    def __init__(self, client):
+        self.client = client
 
-    def message(self, pubnub, message):
-        print(message.message)
-        pass
+    def device_request(self, enquiry_bool, module_name, requested_function = None, parameters = False):
+        jsonmsg = {"enquiry": enquiry_bool, "module_name": module_name, "requested_function": requested_function, "parameters": parameters}
+        return(client.publish_request(client.channel, jsonmsg))
+    #
+    # def bridge_ip(self):
+    #     jsonmsg = {"enquiry": False, "module_name": "philapi", "requested_function": "bridge_ip"}
+    #     return(client.publish_request(client.channel, jsonmsg))
+    #
+    # def light_switch(self, parameters):
+    #     jsonmsg = {"enquiry": False, "module_name": "philapi", "requested_function": "light_switch", "parameters": [parameters]}
+    #     return(client.publish_request(client.channel, jsonmsg))
 
-def my_publish_callback(envelope, status):
-    if not status.is_error():
-        print("message success")
-        pass
-    else:
-        print("message error")
-        pass
+
+
 
 
 if __name__ == "__main__":
     client = Client('client_test', 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579', 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f')
     client.subscribe_channel('NO40ACE6I6', 'V3SIPF92JQ')
 
-    client.publish_request('NO40ACE6I6', {"enquiry": True, "module_name": "philapi"})
+    #test = client.enquire_module_methods("philapi")
+
+    #test = client.device_request("True", "philapi")
+
+
+    smart = SmartDevice(client)
+    result = smart.device_request(False, 'philapi', 'light_switch', [False, 1])
+    print('result: ' + str(result))
+
+    # device.bridge_ip()
+    # hue.light_switch()
+
+
+
+    # client.publish_request('NO40ACE6I6', {"enquiry": True, "module_name": "philapi"})

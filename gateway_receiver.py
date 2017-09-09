@@ -33,10 +33,10 @@ from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
 
 def my_publish_callback(envelope, status):
     if not status.is_error():
-        print("message err")
+        print("GatewayReceiver: Message successfully sent to client.")
         pass
     else:
-        print("message success")
+        print("GatewayReceiver: Error transmitting message to client.")
         pass
 
 class Receiver(SubscribeCallback):
@@ -63,6 +63,11 @@ class Receiver(SubscribeCallback):
 
         self.pubnub.subscribe().channels(channel_name).execute()
 
+    def publish_request(self, channel, msg):
+        # REVIEW: May need to format py to json
+        msg_json = json.loads(json.dumps(msg))
+        self.pubnub.publish().channel(channel).message(msg_json).async(my_publish_callback)
+
     def presence(self, pubnub, presence):
         #print(presence.channel)
         pass  # handle incoming presence data
@@ -83,6 +88,7 @@ class Receiver(SubscribeCallback):
 
     def message(self, pubnub, message):
         msg = message.message
+        print(msg)
 
         if 'enquiry' in msg and msg['enquiry'] is True:
             # TODO: Still need something to list available modules.
@@ -103,25 +109,50 @@ class Receiver(SubscribeCallback):
                         function = getattr(module, method)
                         dictionary_of_functions[method] = inspect.getargspec(function)[0]
 
-                    available_functions_resp = json.loads(json.dumps(dictionary_of_functions))
+                    enquiry_response = {"module_name": msg['module_name']}
+                    enquiry_response['enquiry'] = dictionary_of_functions
+
+                    available_functions_resp = json.loads(json.dumps(enquiry_response))
 
                     pubnub.publish().channel(message.channel).message(available_functions_resp).async(my_publish_callback)
 
             # Else if no module name supplied just show list of them available.
-            else:
-                dictionary_of_modules = json.loads(json.dumps({"modules": lm.list_modules()}))
+            elif 'module_name' not in msg and msg['enquiry'] is False:
+                dictionary_of_modules = json.loads(json.dumps({"enquiry": {"modules": lm.list_modules()}}))
 
                 pubnub.publish().channel(message.channel).message(dictionary_of_modules).async(my_publish_callback)
 
+        elif 'enquiry' not in msg or msg['enquiry'] is False:
+            if 'requested_function' in msg:
+                if 'module_name' in msg:
+                    module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
 
-        else:
-            # TODO: Handle error message/publish back
-            pass
+                    if module_found:
+                        module = sys.modules['modules.' + msg['module_name']]
+
+                        try:
+                            method_requested = getattr(module, msg['requested_function'])
+                            method_args = inspect.getargspec(method_requested)[0]
+
+                            if not msg['parameters'] and method_args is not None: # needs params but not provided
+                                print('You did not provide parameters that the method requires!')
+
+                                result = {'result': method_requested()}
+                                self.publish_request(message.channel, result)
+
+                            elif msg['parameters'] and method_args is not None: # params provided and needed
+                                result = json.loads(json.method_requested(*msg['parameters'])[1:-1])
+                                pubnub.publish().channel(message.channel).message(result).async(my_publish_callback)
+
+                        except AttributeError as e:
+                            print("GatewayReceiverError: The method you requested does not exist.\n" + e.message)
+
+                else:
+                    print("error no module name supplied even when not an enquiry") # tidy up later
 
 
         # TODO: IMPORTANT: Before carrying out calls, need to negotiate some security policy...
 
-        print(message.message)
         pass
 
 
