@@ -35,13 +35,24 @@ class PolicyDatabase(object):
         cursor = self.connection.cursor()
         #date = cursor.execute("SELECT policy.unique_id, blacklist.user_uuid, policy.start_time, policy.end_time FROM policy INNER JOIN blacklist WHERE policy.unique_id = '%s'" % (device_id))
         query_allowed_time = cursor.execute("SELECT start_time, end_time FROM policy WHERE unique_id = '%s' AND state = '%s'" % (device_id, state))
-        rows = cursor.fetchall()
+        time_policy = cursor.fetchall()
+
+
+        query_blacklist = cursor.execute("SELECT user_uuid FROM blacklist WHERE unique_id = '%s' AND user_uuid = '%s'" % (device_id, uuid))
+        blacklisted = cursor.fetchall()
+
+        if blacklisted:
+            print("User is Blacklisted")
+            return False
+        else:
+            print("User is not blacklisted")
+            pass
 
         # if state exists we know will be single policy for a state + unique_id combination - fetch directly instead of for loop
         start_time = end_time = 0
         if state:
-            start_time = rows[0][1]
-            end_time = rows[0][1]
+            start_time = time_policy[0][1]
+            end_time = time_policy[0][1]
 
         else:
             # TODO loop etc.
@@ -50,12 +61,12 @@ class PolicyDatabase(object):
         t = datetime.datetime.now()
         delta = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
 
-        print(delta, start_time)
-
         if delta > start_time and delta < end_time:
+            print("Time within range")
             return True
 
         else:
+            print("Time not within range")
             return False
 
         print(delta > start_time)
@@ -79,4 +90,4 @@ if __name__ == "__main__":
     pd = PolicyDatabase(host, user, password, database)
 
     # temp
-    pd.access_device('00:17:88:01:02:44:7a:d0-0b', 'philapi', 'test_uuid', 'on')
+    pd.access_device('00:17:88:01:02:44:7a:d0-0b', 'philapi', 'test_user_uuid2', 'on')
