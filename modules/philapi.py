@@ -1,6 +1,6 @@
 import requests
 import json
-
+from info import Info
 
 # TODO: HANDLE RESPONSES TO GIVE TO CLIENT (ERROR CODES)
 # TODO: For Philips API calls do better error returns, such as passing on those returned via the API.
@@ -10,6 +10,7 @@ class ButtonNotPressed(Exception):
 
 # REVIEW TEMPORARY PLACEMENT OF KEY
 bulb_key = "PEuzGOSH9rFqcjqDOCREmpeBpdT-kc-zbFY3tyXh"
+
 
 def bridge_ip():
     list_bridges = requests.get('https://www.meethue.com/api/nupnp')
@@ -52,7 +53,7 @@ def bridge_auth():
 
     return result
 
-def show_hues(bridge_key):
+def show_hues(bridge_key = bulb_key):
     # TODO: REPLACE HARDCODED AUTH KEY WITH RETRIEVED ONE --> bridge_auth()
     req = requests.get('http://{0}/api/{1}/lights'.format(bridge_ip(), bridge_key))
 
@@ -72,18 +73,35 @@ def light_switch(state, bulb_id, bridge_key = bulb_key):
 
     return(req.text)
 
-def light_brightness(brightness, bridge_key, bulb_id):
+def light_brightness(state, bulb_id, bridge_key = bulb_key):
     api_url = 'http://{0}/api/{1}/lights/{2}/state'.format(bridge_ip(), bridge_key, bulb_id)
 
-    if brightness < 1 or brightness > 100:
+    if state < 1 or state > 100:
         print('error')
     else:
-        bri_lvl = int((brightness / 100) * 254)
+        bri_lvl = int((state / 100) * 254)
 
         data = json.dumps({'on':True, "bri":bri_lvl}) # To change brightness level it requires you to switch the bulb on – maybe change this?
         result = requests.put(api_url, data)
 
         if 'success' in result:
-            print('Bulb {0} brightness changed to {1}'.format(bulb_id, brightness))
+            print('Bulb {0} brightness changed to {1}'.format(bulb_id, state))
 
         print(req.text)
+
+class Device(Info):
+
+    def get_device_info(self, bulb_id, state_type, bridge_key = bulb_key):
+        api_url = 'http://{0}/api/{1}/lights/{2}'.format(bridge_ip(), bridge_key, bulb_id)
+        req = requests.get(api_url)
+        jsonresp = json.loads(req.text)
+
+        # So essentially all functions in thos module can send the state to this function
+        # And it will builf up a key-val pair to say the type of the state and the state value
+        response = {"device_id": jsonresp['uniqueid'], "state": {'state_type': jsonresp['state'][state_type]}}
+
+        return response # this is going to be sent back to gateway receiver and it will check before calling other methods.
+
+#temp
+device = Device()
+device.get_device_info(1, "on", "PEuzGOSH9rFqcjqDOCREmpeBpdT-kc-zbFY3tyXh")
