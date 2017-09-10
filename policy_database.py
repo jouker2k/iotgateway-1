@@ -34,22 +34,25 @@ class PolicyDatabase(object):
     def access_device(self, device_id, module_name, user_uuid, state = None):
         cursor = self.connection.cursor()
 
-        query_allowed_time = cursor.execute("SELECT start_time, end_time FROM policy WHERE unique_id = '%s' AND state = '%s' AND module_name = '%s'" % (device_id, state, module_name))
-        time_policy = cursor.fetchall()
-
         query_blacklist = cursor.execute("SELECT user_uuid FROM blacklist WHERE unique_id = '%s' AND user_uuid = '%s'" % (device_id, user_uuid))
         blacklisted = cursor.fetchall()
 
         if blacklisted:
             print("User is Blacklisted")
             return [False, "uuid_rejected"]
-        else:
-            print("User is not blacklisted")
-            pass
+
+        print("User is not blacklisted")
 
         # if state exists we know will be single policy for a state + unique_id combination - fetch directly instead of for loop
         start_time = end_time = 0
         if state:
+            state_type = state['state_type']
+            state_value = state['state_value']
+
+            query_allowed_time = cursor.execute("SELECT start_time, end_time FROM policy WHERE unique_id = '%s' AND state_type = '%s' AND state_value = '%s' AND module_name = '%s'" % (device_id, state_type, state_value, module_name))
+
+            time_policy = cursor.fetchall()
+
             start_time = time_policy[0][1]
             end_time = time_policy[0][1]
 
@@ -89,4 +92,4 @@ if __name__ == "__main__":
     pd = PolicyDatabase(host, user, password, database)
 
     # temp
-    pd.access_device('00:17:88:01:02:44:7a:d0-0b', 'philapi', 'test_user_uuid2', 'on')
+    pd.access_device('00:17:88:01:02:44:7a:d0-0b', 'philapi', 'test_user_uuid2', {"state_type": "on", "state_value": True})
