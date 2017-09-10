@@ -62,36 +62,14 @@ class SmartDevice(object):
     def __init__(self, client):
         self.client = client
 
-    def device_request(self, enquiry_bool, module_name, requested_function = None, parameters = False):
-        jsonmsg = {"enquiry": enquiry_bool, "module_name": module_name, "requested_function": requested_function, "parameters": parameters}
+    def device_request(self, enquiry_bool, module_name, requested_function = None, parameters = False, device_info = None):
+        jsonmsg = {"enquiry": enquiry_bool, "module_name": module_name, "requested_function": requested_function, "parameters": parameters, "device_info": device_info}
         return(client.publish_request(client.channel, jsonmsg))
-    #
-    # def bridge_ip(self):
-    #     jsonmsg = {"enquiry": False, "module_name": "philapi", "requested_function": "bridge_ip"}
-    #     return(client.publish_request(client.channel, jsonmsg))
-    #
-    # def light_switch(self, parameters):
-    #     jsonmsg = {"enquiry": False, "module_name": "philapi", "requested_function": "light_switch", "parameters": [parameters]}
-    #     return(client.publish_request(client.channel, jsonmsg))
-
-
-
-
 
 if __name__ == "__main__":
     client = Client('client_test', 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579', 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f')
     client.subscribe_channel('NO40ACE6I6', 'V3SIPF92JQ')
 
-    #test = client.enquire_module_methods("philapi")
-
-    #test = client.device_request("True", "philapi")
-
-
-    # smart = SmartDevice(client)
-    # result = smart.device_request(False, 'philapi', 'light_switch', [False, 1])
-    # print('result: ' + str(result))
-
-    # device.bridge_ip()
-    # hue.light_switch()
-
-    print(client.publish_request('NO40ACE6I6', {'enquiry':True, 'module_name':'philapi'}))
+    smart = SmartDevice(client)
+    result = smart.device_request(False, 'philapi', 'light_switch', [False, 1], {'bulb_id': 1, 'state_type': 'on', 'state_value': True})
+    print('result: ' + str(result))
