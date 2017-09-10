@@ -86,13 +86,13 @@ if __name__ == "__main__":
     #test = client.device_request("True", "philapi")
 
 
-    smart = SmartDevice(client)
-    result = smart.device_request(False, 'philapi', 'light_switch', [False, 1])
-    print('result: ' + str(result))
+    # smart = SmartDevice(client)
+    # result = smart.device_request(False, 'philapi', 'light_switch', [False, 1])
+    # print('result: ' + str(result))
 
     # device.bridge_ip()
     # hue.light_switch()
 
 
 
-    # client.publish_request('NO40ACE6I6', {"enquiry": True, "module_name": "philapi"})
+    print(client.publish_request('NO40ACE6I6', {"enquiry": True, "module_name": "philapi"}))

@@ -1,16 +1,13 @@
 import requests
 import json
-from info import Info
+# from .exceptions import *
+from .exceptions import exception
 
 # TODO: HANDLE RESPONSES TO GIVE TO CLIENT (ERROR CODES)
 # TODO: For Philips API calls do better error returns, such as passing on those returned via the API.
 
-class ButtonNotPressed(Exception):
-    pass
-
 # REVIEW TEMPORARY PLACEMENT OF KEY
 bulb_key = "PEuzGOSH9rFqcjqDOCREmpeBpdT-kc-zbFY3tyXh"
-
 
 def bridge_ip():
     list_bridges = requests.get('https://www.meethue.com/api/nupnp')
@@ -21,6 +18,7 @@ def bridge_ip():
     else:
         bridge_ip = bridge_ip[0]['internalipaddress'] # if just one bridge, take its ip
 
+    print(bridge_ip)
     return bridge_ip
 
 def bridge_auth():
@@ -34,20 +32,20 @@ def bridge_auth():
         try:
             press_auth = input('Enter Y once you have pressed the button on the Hue Bridge: ')
             if press_auth != 'Y':
-                raise ButtonNotPressed
+                raise exception.ButtonNotPressed
             else:
                 # once button has been pressed, we can make a successful request.
                 data = json.dumps({"devicetype":"my_hue_app#"+bridge_name})
                 result = json.loads(requests.post(api_url, data).text)[0]
 
                 if 'error' in result:
-                    raise ButtonNotPressed
+                    raise exception.ButtonNotPressed
                 else:
                     print('The key found is: ' + result['success']['username'])
                     result = result['success']['username']
                     break
 
-        except ButtonNotPressed as e:
+        except exception.ButtonNotPressed as e:
             print('There was an error, please try press the button again.')
             continue
 
@@ -89,19 +87,16 @@ def light_brightness(state, bulb_id, bridge_key = bulb_key):
 
         print(req.text)
 
-class Device(Info):
+def get_device_info(bulb_id, state_type, bridge_key = bulb_key):
+    api_url = 'http://{0}/api/{1}/lights/{2}'.format(bridge_ip(), bridge_key, bulb_id)
+    req = requests.get(api_url)
+    jsonresp = json.loads(req.text)
 
-    def get_device_info(self, bulb_id, state_type, bridge_key = bulb_key):
-        api_url = 'http://{0}/api/{1}/lights/{2}'.format(bridge_ip(), bridge_key, bulb_id)
-        req = requests.get(api_url)
-        jsonresp = json.loads(req.text)
-
-        # So essentially all functions in thos module can send the state to this function
-        # And it will builf up a key-val pair to say the type of the state and the state value
-        response = {"device_id": jsonresp['uniqueid'], "state": {'state_type': jsonresp['state'][state_type]}}
-
-        return response # this is going to be sent back to gateway receiver and it will check before calling other methods.
+    # So essentially all functions in thos module can send the state to this function
+    # And it will builf up a key-val pair to say the type of the state and the state value
+    response = {"device_id": jsonresp['uniqueid'], "state": {'state_type': jsonresp['state'][state_type]}}
+    print(response)
+    return response # this is going to be sent back to gateway receiver and it will check before calling other methods.
 
 #temp
-device = Device()
-device.get_device_info(1, "on", "PEuzGOSH9rFqcjqDOCREmpeBpdT-kc-zbFY3tyXh")
+#device.get_device_info(1, "on", "PEuzGOSH9rFqcjqDOCREmpeBpdT-kc-zbFY3tyXh")

@@ -1,0 +1,2 @@
+class ButtonNotPressed(Exception):
+    pass

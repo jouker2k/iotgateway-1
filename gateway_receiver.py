@@ -22,7 +22,8 @@ import sys
 import json
 import inspect
 from importlib import util
-from helpers import module_methods, list_modules as lm
+
+from helpers import module_methods, default_args, list_modules as lm
 from modules import philapi
 
 from pubnub.enums import PNStatusCategory
@@ -84,6 +85,12 @@ class Receiver(SubscribeCallback):
         elif status.category == PNStatusCategory.PNDecryptionErrorCategory:
             pass
 
+    def delete_defaults(self, function, array):
+        defaults = default_args.get_default_args(function)
+        if defaults:
+            for default_arg in defaults:
+                array.remove(default_arg)
+
     def message(self, pubnub, message):
         msg = message.message
         print(msg)
@@ -107,15 +114,21 @@ class Receiver(SubscribeCallback):
                         function = getattr(module, method)
                         dictionary_of_functions[method] = inspect.getargspec(function)[0]
 
-                    enquiry_response = {"module_name": msg['module_name']}
-                    enquiry_response['enquiry'] = dictionary_of_functions
+                        # Going to remove any default parameters - no need to supply keys etc.
+                        self.delete_defaults(function, dictionary_of_functions[method])
+
+                    get_device_info = getattr(module, 'get_device_info')
+                    get_device_info_params = inspect.getargspec(get_device_info)[0]
+                    self.delete_defaults(get_device_info, get_device_info_params)
+
+                    enquiry_response = {"mandatory_function_call": {"get_device_info": get_device_info_params}, "module_name": msg['module_name'], "enquiry": dictionary_of_functions}
 
                     available_functions_resp = json.loads(json.dumps(enquiry_response))
-
                     pubnub.publish().channel(message.channel).message(available_functions_resp).async(my_publish_callback)
 
             # Else if no module name supplied just show list of them available.
             elif 'module_name' not in msg and msg['enquiry'] is False:
+
                 dictionary_of_modules = json.loads(json.dumps({"enquiry": {"modules": lm.list_modules()}}))
 
                 pubnub.publish().channel(message.channel).message(dictionary_of_modules).async(my_publish_callback)
@@ -157,3 +170,4 @@ class Receiver(SubscribeCallback):
 if __name__ == "__main__":
     receiver = Receiver()
     receiver.subscribe_channel('NO40ACE6I6', 'V3SIPF92JQ')
+    # TTL needs to be 0
