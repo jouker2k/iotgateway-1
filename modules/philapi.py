@@ -1,7 +1,7 @@
 import requests
 import json
 # from .exceptions import *
-from exceptions import exception
+from .exceptions import exception
 
 # TODO: HANDLE RESPONSES TO GIVE TO CLIENT (ERROR CODES)
 # TODO: For Philips API calls do better error returns, such as passing on those returned via the API.
@@ -87,7 +87,7 @@ def light_brightness(state, bulb_id, bridge_key = bulb_key):
 
         print(req.text)
 
-def get_device_info(bulb_id, state_type, bridge_key = bulb_key):
+def device_info(bulb_id, state_type, bridge_key = bulb_key):
     api_url = 'http://{0}/api/{1}/lights/{2}'.format(bridge_ip(), bridge_key, bulb_id)
     req = requests.get(api_url)
     jsonresp = json.loads(req.text)
@@ -98,4 +98,4 @@ def get_device_info(bulb_id, state_type, bridge_key = bulb_key):
     return response # this is going to be sent back to gateway receiver and it will check before calling other methods.
 
 #temp
-#get_device_info(1, "on", "PEuzGOSH9rFqcjqDOCREmpeBpdT-kc-zbFY3tyXh")
+#device_info(1, "on", "PEuzGOSH9rFqcjqDOCREmpeBpdT-kc-zbFY3tyXh")

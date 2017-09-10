@@ -93,7 +93,7 @@ class Receiver(SubscribeCallback):
 
     def message(self, pubnub, message):
         msg = message.message
-        print(msg)
+
 
         if 'enquiry' in msg and msg['enquiry'] is True:
             # TODO: Still need something to list available modules.
@@ -117,50 +117,55 @@ class Receiver(SubscribeCallback):
                         # Going to remove any default parameters - no need to supply keys etc.
                         self.delete_defaults(function, dictionary_of_functions[method])
 
-                    get_device_info = getattr(module, 'get_device_info')
-                    get_device_info_params = inspect.getargspec(get_device_info)[0]
-                    self.delete_defaults(get_device_info, get_device_info_params)
+                    device_info = getattr(module, 'device_info')
+                    device_info_params = inspect.getargspec(device_info)[0]
+                    self.delete_defaults(device_info, device_info_params)
 
-                    enquiry_response = {"mandatory_function_call": {"get_device_info": get_device_info_params}, "module_name": msg['module_name'], "enquiry": dictionary_of_functions}
+                    enquiry_response = {"mandatory_function_call": {"device_info": device_info_params}, "module_name": msg['module_name'], "enquiry": dictionary_of_functions}
 
                     available_functions_resp = json.loads(json.dumps(enquiry_response))
                     pubnub.publish().channel(message.channel).message(available_functions_resp).async(my_publish_callback)
 
             # Else if no module name supplied just show list of them available.
-            elif 'module_name' not in msg and msg['enquiry'] is False:
+            elif 'module_name' not in msg and msg['enquiry'] is True:
 
                 dictionary_of_modules = json.loads(json.dumps({"enquiry": {"modules": lm.list_modules()}}))
 
                 pubnub.publish().channel(message.channel).message(dictionary_of_modules).async(my_publish_callback)
 
-        elif 'enquiry' not in msg or msg['enquiry'] is False:
-            if 'requested_function' in msg:
-                if 'module_name' in msg:
-                    module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
+        elif 'enquiry' in msg and msg['enquiry'] is False:
+            if 'device_info' in msg:
 
-                    if module_found:
-                        module = sys.modules['modules.' + msg['module_name']]
+                if 'requested_function' in msg:
+                    if 'module_name' in msg:
+                        module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
 
-                        try:
-                            method_requested = getattr(module, msg['requested_function'])
-                            method_args = inspect.getargspec(method_requested)[0]
+                        if module_found:
+                            module = sys.modules['modules.' + msg['module_name']]
 
-                            if not msg['parameters'] and method_args is not None: # needs params but not provided
-                                print('You did not provide parameters that the method requires!')
+                            try:
+                                method_requested = getattr(module, msg['requested_function'])
+                                method_args = inspect.getargspec(method_requested)[0]
 
-                                result = {'result': method_requested()}
-                                self.publish_request(message.channel, result)
+                                if not msg['parameters'] and method_args is not None: # needs params but not provided
+                                    print('{}: User did not provide parameters that the method requires!'.format(message.channel))
 
-                            elif msg['parameters'] and method_args is not None: # params provided and needed
-                                result = json.loads(json.method_requested(*msg['parameters'])[1:-1])
-                                pubnub.publish().channel(message.channel).message(result).async(my_publish_callback)
+                                    result = {'result': method_requested()}
+                                    self.publish_request(message.channel, result)
 
-                        except AttributeError as e:
-                            print("GatewayReceiverError: The method you requested does not exist.\n" + e.message)
+                                elif msg['parameters'] and method_args is not None: # params provided and needed
+                                    result = json.loads(json.method_requested(*msg['parameters'])[1:-1])
+                                    pubnub.publish().channel(message.channel).message(result).async(my_publish_callback)
 
-                else:
-                    print("error no module name supplied even when not an enquiry") # tidy up later
+                            except AttributeError as e:
+                                print("{}: The method you requested does not exist. {}".format(message.channel, e.message))
 
+
+                    else:
+                        print("{}: Error no module name supplied even when not an enquiry".format(message.channel)) # tidy up later
+
+            else:
+                print("{}: Device info not provided, cannot proceed.".format(message.channel))
 
         # TODO: IMPORTANT: Before carrying out calls, need to negotiate some security policy...
 

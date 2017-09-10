@@ -43,6 +43,7 @@ class Client(object):
 
     def publish_request(self, channel, msg):
         # REVIEW: May need to format py to json
+        #msg_json = json.loads(json.dumps(msg))
         msg_json = json.loads(json.dumps(msg))
         self.pubnub.publish().channel(channel).message(msg_json).sync()
 
@@ -93,6 +94,4 @@ if __name__ == "__main__":
     # device.bridge_ip()
     # hue.light_switch()
 
-
-
-    print(client.publish_request('NO40ACE6I6', {"enquiry": True, "module_name": "philapi"}))
+    print(client.publish_request('NO40ACE6I6', {'enquiry':True, 'module_name':'philapi'}))
