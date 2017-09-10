@@ -46,7 +46,6 @@ class Receiver(SubscribeCallback):
         # Text file?
         # Etc. IMPORTANT
         self.pnconfig = PNConfiguration()
-        self.channel = '' # REVIEW: PROBABLY DO NOT NEED THIS HERE
         self.pnconfig.uuid = self.uuid = 'gateway'
         self.pnconfig.subscribe_key = self.subscribe_key = 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579'
         self.pnconfig.publish_key = self.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
@@ -57,7 +56,6 @@ class Receiver(SubscribeCallback):
 
     def subscribe_channel(self, channel_name, auth_key):
         self.pnconfig.auth_key = auth_key
-        self.channel = channel_name
         self.pubnub = PubNub(self.pnconfig)
         self.pubnub.add_listener(self)
 

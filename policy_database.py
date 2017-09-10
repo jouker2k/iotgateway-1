@@ -11,13 +11,14 @@ DB Columns?
 - device_id
 - start_time
 - end_time
-- blacklisted_uuid
+- blacklisted_user_uuid
 '''
 
 class PolicyDatabase(object):
     def __init__(self, host, user, password, database):
         try:
             self.connection = pymysql.connect(host, user, password, database)
+            print("PolicyDatabase: Connected.")
 
         except _mysql.Error as e:
             print("Error {}: {}".format(e.args[0], e.args[1]))
@@ -30,18 +31,18 @@ class PolicyDatabase(object):
 
         print(rows)
 
-    def access_device(self, device_id, module_name, uuid, state = None):
+    def access_device(self, device_id, module_name, user_uuid, state = None):
         cursor = self.connection.cursor()
 
         query_allowed_time = cursor.execute("SELECT start_time, end_time FROM policy WHERE unique_id = '%s' AND state = '%s' AND module_name = '%s'" % (device_id, state, module_name))
         time_policy = cursor.fetchall()
 
-        query_blacklist = cursor.execute("SELECT user_uuid FROM blacklist WHERE unique_id = '%s' AND user_uuid = '%s'" % (device_id, uuid))
+        query_blacklist = cursor.execute("SELECT user_uuid FROM blacklist WHERE unique_id = '%s' AND user_uuid = '%s'" % (device_id, user_uuid))
         blacklisted = cursor.fetchall()
 
         if blacklisted:
             print("User is Blacklisted")
-            return False
+            return [False, "uuid_rejected"]
         else:
             print("User is not blacklisted")
             pass
@@ -65,7 +66,7 @@ class PolicyDatabase(object):
 
         else:
             print("Time not within range")
-            return False
+            return [False, "time_rejected"]
 
         print(delta > start_time)
         #print(now > start_time)
