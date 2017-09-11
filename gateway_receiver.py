@@ -94,67 +94,77 @@ class Receiver(SubscribeCallback):
     def message(self, pubnub, message):
         msg = message.message
 
+        if message.channel not "policy":
+            if 'enquiry' in msg and msg['enquiry'] is True:
+                # TODO: Still need something to list available modules.
+                if 'module_name' in msg:
+                    module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
 
-        if 'enquiry' in msg and msg['enquiry'] is True:
-            # TODO: Still need something to list available modules.
-            if 'module_name' in msg:
-                module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
+                    # Maybe since there was something supplied, instead of False just call a publish to tell them
+                    # They mispelled or something.
 
-                # Maybe since there was something supplied, instead of False just call a publish to tell them
-                # They mispelled or something.
+                    if module_found:
 
-                if module_found:
+                        methods = module_methods.find(msg['module_name']) # Gets module's methods (cannot be inside a class)
 
-                    methods = module_methods.find(msg['module_name']) # Gets module's methods (cannot be inside a class)
+                        module = sys.modules['modules.' + msg['module_name']]
 
-                    module = sys.modules['modules.' + msg['module_name']]
+                        dictionary_of_functions = {}
+                        for method in methods:
+                            function = getattr(module, method)
+                            dictionary_of_functions[method] = inspect.getargspec(function)[0]
 
-                    dictionary_of_functions = {}
-                    for method in methods:
-                        function = getattr(module, method)
-                        dictionary_of_functions[method] = inspect.getargspec(function)[0]
+                            # Going to remove any default parameters - no need to supply keys etc.
+                            self.delete_defaults(function, dictionary_of_functions[method])
 
-                        # Going to remove any default parameters - no need to supply keys etc.
-                        self.delete_defaults(function, dictionary_of_functions[method])
+                        enquiry_response = {"module_name": msg['module_name'], "enquiry": dictionary_of_functions}
 
-                    enquiry_response = {"module_name": msg['module_name'], "enquiry": dictionary_of_functions}
+                        self.publish_request(message.channel, enquiry_response)
 
-                    self.publish_request(message.channel, enquiry_response)
-
-            # Else if no module name supplied just show list of them available.
-            elif 'module_name' not in msg and msg['enquiry'] is True:
-
-
-                self.publish_request(message.channel, {"enquiry": {"modules": lm.list_modules()}})
-
-        elif 'enquiry' in msg and msg['enquiry'] is False:
-                if 'requested_function' in msg:
-                    if 'module_name' in msg:
-                        module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
-
-                        if module_found:
-                            module = sys.modules['modules.' + msg['module_name']]
+                # Else if no module name supplied just show list of them available.
+                elif 'module_name' not in msg and msg['enquiry'] is True:
 
 
-                            # Temporarily disabled
-                            method_requested = getattr(module, msg['requested_function'])
-                            method_args = inspect.getargspec(method_requested)[0]
+                    self.publish_request(message.channel, {"enquiry": {"modules": lm.list_modules()}})
 
-                            if not msg['parameters'] and method_args is not None: # needs params but not provided
-                                print('{}: User did not provide parameters that the method requires!'.format(message.channel))
+            elif 'enquiry' in msg and msg['enquiry'] is False:
+                    if 'requested_function' in msg:
+                        if 'module_name' in msg:
+                            module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
 
-                                result = {'result': method_requested()}
-                                self.publish_request(message.channel, result)
+                            if module_found:
+                                module = sys.modules['modules.' + msg['module_name']]
 
-                            elif msg['parameters'] and method_args is not None: # params provided and needed
-                                result = method_requested(*msg['parameters'])
+                                # Temporarily disabled
+                                method_requested = getattr(module, msg['requested_function'])
+                                method_args = inspect.getargspec(method_requested)[0]
 
-                                jsonres = {"result": str(result)}
-                                self.publish_request(message.channel, jsonres)
+                                if not msg['parameters'] and method_args is not None: # needs params but not provided
+                                    print('{}: User did not provide parameters that the method requires!'.format(message.channel))
+
+                                    result = {'result': method_requested()}
+                                    self.publish_request(message.channel, result)
+
+                                elif msg['parameters'] and method_args is not None: # params provided and needed
+
+                                    get_mac = getattr(module, 'get_mac')
+                                    mac_address = get_mac()
+
+                                    self.publish_request("policy", {"channel": message.channel, "mac_address": mac_address, "request": msg})
+
+                                    # REVIEW: Useful later when granted access
+                                    #result = method_requested(*msg['parameters'])
+                                    #jsonres = {"result": str(result)}
+                                    #self.publish_request(message.channel, jsonres)
 
 
-                    else:
-                        print("{}: Error no module name supplied even when not an enquiry".format(message.channel)) # tidy up later
+                        else:
+                            print("{}: Error no module name supplied even when not an enquiry".format(message.channel)) # tidy up later
+
+        elif message.channel is "policy":
+            # {'access': 'rejected', 'request': {'user_uuid': 'client_test', 'enquiry': False, 'module_name': 'philapi', 'requested_function': 'light_switch', 'parameters': [False, 1]}}
+            # TODO for later: Now need to just run function based on what policy server has authorised to run.
+
 
         # TODO: IMPORTANT: Before carrying out calls, need to negotiate some security policy...
         pass

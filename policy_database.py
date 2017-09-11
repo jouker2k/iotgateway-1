@@ -31,29 +31,28 @@ class PolicyDatabase(object):
 
         print(rows)
 
-    def access_device(self, device_id, module_name, user_uuid, state = None):
+    def access_device(self, mac_address, uuid, module_name, required_function, parameters):
         cursor = self.connection.cursor()
 
-        query_blacklist = cursor.execute("SELECT user_uuid FROM blacklist WHERE unique_id = '%s' AND user_uuid = '%s'" % (device_id, user_uuid))
-        blacklisted = cursor.fetchall()
-
-        if blacklisted:
-            print("User is Blacklisted")
-            return [False, "uuid_rejected"]
-
-        print("User is not blacklisted")
+        # TODO: Going have to redo this part
+        # query_blacklist = cursor.execute("SELECT user_uuid FROM blacklist WHERE mac_address = '%s' AND user_uuid = '%s'" % (device_id, user_uuid))
+        # blacklisted = cursor.fetchall()
+        #
+        # if blacklisted:
+        #     print("User is Blacklisted")
+        #     return [False, "uuid_rejected"]
+        #
+        # print("User is not blacklisted")
 
         # if state exists we know will be single policy for a state + unique_id combination - fetch directly instead of for loop
         start_time = end_time = 0
-        if state:
-            state_type = state['state_type']
-            state_value = state['state_value']
+        if required_function:
 
-            query_allowed_time = cursor.execute("SELECT start_time, end_time FROM policy WHERE unique_id = '%s' AND state_type = '%s' AND state_value = '%s' AND module_name = '%s'" % (device_id, state_type, state_value, module_name))
+            query_allowed_time = cursor.execute("SELECT start_time, end_time FROM security_policy WHERE mac_address = '%s' AND requested_function = '%s' AND parameters = '%s' AND module_name = '%s'" % (mac_address, required_function, parameters, module_name))
 
             time_policy = cursor.fetchall()
 
-            start_time = time_policy[0][1]
+            start_time = time_policy[0][0]
             end_time = time_policy[0][1]
 
         else:
@@ -62,6 +61,9 @@ class PolicyDatabase(object):
 
         t = datetime.datetime.now()
         delta = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
+
+        print(delta)
+        print(start_time, end_time)
 
         if delta > start_time and delta < end_time:
             print("Time within range")
@@ -92,4 +94,4 @@ if __name__ == "__main__":
     pd = PolicyDatabase(host, user, password, database)
 
     # temp
-    pd.access_device('00:17:88:01:02:44:7a:d0-0b', 'philapi', 'test_user_uuid2', {"state_type": "on", "state_value": True})
+    pd.access_device('00:17:88:6c:d6:d3', 'client_test','philapi', 'light_switch', [False, 1])

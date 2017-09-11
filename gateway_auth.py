@@ -101,7 +101,7 @@ class MySubscribeCallback(SubscribeCallback):
 
             pubnub.unsubscribe().channels(presence.uuid).execute()
             #pubnub.grant().channels(channelName).read(False).write(False).manage(True).sync()
-            pubnub.grant().channels(channelName).auth_keys(authkey).read(True).write(True).manage(True).sync()
+            pubnub.grant().channels([channelName, "policy"]).auth_keys(authkey).read(True).write(True).manage(True).ttl(0).sync()
             # pnconfig.auth_key = authkey
             # pubnub = PubNub(pnconfig)
             pubnub.subscribe().channels(channelName).execute()

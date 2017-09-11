@@ -72,22 +72,16 @@ class PolicyServer(SubscribeCallback):
     '''device_id expected to be MAC address'''
     def message(self, pubnub, message):
         msg = message.message
-        expected_parameters = ['device_id', 'module_name', 'user_uuid', 'state']
+        print(message.message)
 
-        if all(x in msg for x in expected_parameters):
+        if 'user_uuid' in msg['request'] and 'mac_address' in msg:
 
-
-            ''' # Temporarily disabled - Although may be replaced
-            access = self.pd.access_device(msg['device_id'], msg['module_name'], msg['user_uuid'], msg['state'])
-            print("access: {}".format(access))
-            if access is True:
-                self.publish_message(message.channel, '{"status": 1, "type": None}') # will make up codes for granted/time_rejected/uuid_rejected
-
+            access = self.pd.access_device(msg['mac_address'], msg['request']['user_uuid'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'])[0]
+            if access:
+                self.publish_message(message.channel, {"access": "granted", "request": msg['request']})
             else:
-                self.publish_message(message.channel, {"status": 2, "type": access[1]})
-            '''
-            print(message.message)
-            pass
+                self.publish_message(message.channel, {"access": "rejected", "request": msg['request']})
+
 
         else:
             print("Not received expected parameters.")
