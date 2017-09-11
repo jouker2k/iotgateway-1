@@ -75,6 +75,9 @@ class PolicyServer(SubscribeCallback):
         expected_parameters = ['device_id', 'module_name', 'user_uuid', 'state']
 
         if all(x in msg for x in expected_parameters):
+
+
+            ''' # Temporarily disabled - Although may be replaced
             access = self.pd.access_device(msg['device_id'], msg['module_name'], msg['user_uuid'], msg['state'])
             print("access: {}".format(access))
             if access is True:
@@ -82,6 +85,9 @@ class PolicyServer(SubscribeCallback):
 
             else:
                 self.publish_message(message.channel, {"status": 2, "type": access[1]})
+            '''
+            print(message.message)
+            pass
 
         else:
             print("Not received expected parameters.")

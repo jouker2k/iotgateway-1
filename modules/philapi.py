@@ -87,15 +87,14 @@ def light_brightness(state, bulb_id, bridge_key = bulb_key):
 
         print(req.text)
 
-def device_info(bulb_id, state_type, state_value, bridge_key = bulb_key):
-    api_url = 'http://{0}/api/{1}/lights/{2}'.format(bridge_ip(), bridge_key, bulb_id)
+def get_mac():
+    global bulb_key
+    api_url = 'http://{0}/api/{1}'.format(bridge_ip(), bulb_key)
     req = requests.get(api_url)
     jsonresp = json.loads(req.text)
-    # So essentially all functions in thos module can send the state to this function
-    # And it will builf up a key-val pair to say the type of the state and the state value
-    response = json.loads(json.dumps({"device_id": jsonresp['uniqueid'], "state": {"state_type": state_type, "state_value": state_value}}))
-    print(response)
-    return response # this is going to be sent back to gateway receiver and it will check before calling other methods.
+
+    mac = jsonresp['config']['mac']
+    return mac
 
 #temp
 #device_info(1, "on", True, "PEuzGOSH9rFqcjqDOCREmpeBpdT-kc-zbFY3tyXh")

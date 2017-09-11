@@ -43,8 +43,11 @@ class Client(object):
 
     def publish_request(self, channel, msg):
         # REVIEW: May need to format py to json
+
         #msg_json = json.loads(json.dumps(msg))
-        msg_json = json.loads(json.dumps(msg))
+        msg_json = msg
+
+
         self.pubnub.publish().channel(channel).message(msg_json).sync()
 
         call = self.my_listener.wait_for_message_on(channel)
@@ -62,8 +65,8 @@ class SmartDevice(object):
     def __init__(self, client):
         self.client = client
 
-    def device_request(self, enquiry_bool, module_name, requested_function = None, parameters = False, device_info = None):
-        jsonmsg = {"enquiry": enquiry_bool, "module_name": module_name, "requested_function": requested_function, "parameters": parameters, "device_info": device_info}
+    def device_request(self, uuid, enquiry_bool, module_name = None, requested_function = None, parameters = False):
+        jsonmsg = {"user_uuid": uuid, "enquiry": enquiry_bool, "module_name": module_name, "requested_function": requested_function, "parameters": parameters}
         return(client.publish_request(client.channel, jsonmsg))
 
 if __name__ == "__main__":
@@ -71,5 +74,5 @@ if __name__ == "__main__":
     client.subscribe_channel('NO40ACE6I6', 'V3SIPF92JQ')
 
     smart = SmartDevice(client)
-    result = smart.device_request(False, 'philapi', 'light_switch', [False, 1], {'bulb_id': 1, 'state_type': 'on', 'state_value': True})
-    print('result: ' + str(result))
+    result = smart.device_request(client.pnconfig.uuid, False, "philapi", "light_switch", [False, 1])
+    print(str(result))

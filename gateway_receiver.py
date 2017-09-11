@@ -117,24 +117,17 @@ class Receiver(SubscribeCallback):
                         # Going to remove any default parameters - no need to supply keys etc.
                         self.delete_defaults(function, dictionary_of_functions[method])
 
-                    device_info = getattr(module, 'device_info')
-                    device_info_params = inspect.getargspec(device_info)[0]
-                    self.delete_defaults(device_info, device_info_params)
+                    enquiry_response = {"module_name": msg['module_name'], "enquiry": dictionary_of_functions}
 
-                    enquiry_response = {"mandatory_function_call": {"device_info": device_info_params}, "module_name": msg['module_name'], "enquiry": dictionary_of_functions}
-
-                    available_functions_resp = json.loads(json.dumps(enquiry_response))
-                    pubnub.publish().channel(message.channel).message(available_functions_resp).async(my_publish_callback)
+                    self.publish_request(message.channel, enquiry_response)
 
             # Else if no module name supplied just show list of them available.
             elif 'module_name' not in msg and msg['enquiry'] is True:
 
-                dictionary_of_modules = json.loads(json.dumps({"enquiry": {"modules": lm.list_modules()}}))
 
-                pubnub.publish().channel(message.channel).message(dictionary_of_modules).async(my_publish_callback)
+                self.publish_request(message.channel, {"enquiry": {"modules": lm.list_modules()}})
 
         elif 'enquiry' in msg and msg['enquiry'] is False:
-            if 'device_info' in msg:
                 if 'requested_function' in msg:
                     if 'module_name' in msg:
                         module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
@@ -142,10 +135,8 @@ class Receiver(SubscribeCallback):
                         if module_found:
                             module = sys.modules['modules.' + msg['module_name']]
 
-                            device_info_params = []
-                            for param in msg['device_info']:
-                                device_info_params.append(param)
 
+                            # Temporarily disabled
                             method_requested = getattr(module, msg['requested_function'])
                             method_args = inspect.getargspec(method_requested)[0]
 
@@ -156,18 +147,16 @@ class Receiver(SubscribeCallback):
                                 self.publish_request(message.channel, result)
 
                             elif msg['parameters'] and method_args is not None: # params provided and needed
-                                result = json.loads(method_requested(*msg['parameters'])[1:-1])
-                                print("Result: " + str(result))
-                                pubnub.publish().channel(message.channel).message(result).async(my_publish_callback)
+                                result = method_requested(*msg['parameters'])
+
+                                jsonres = {"result": str(result)}
+                                self.publish_request(message.channel, jsonres)
+
 
                     else:
                         print("{}: Error no module name supplied even when not an enquiry".format(message.channel)) # tidy up later
 
-            else:
-                print("{}: Device info not provided, cannot proceed.".format(message.channel))
-
         # TODO: IMPORTANT: Before carrying out calls, need to negotiate some security policy...
-
         pass
 
 
