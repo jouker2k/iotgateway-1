@@ -13,8 +13,6 @@ __author__ = "sgript"
     }
 
 '''
-from multiprocessing import Pool
-
 
 import json
 from pubnub.enums import PNStatusCategory

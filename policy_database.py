@@ -91,7 +91,7 @@ if __name__ == "__main__":
 
     database = 'c1312433'
 
-    pd = PolicyDatabase(host, user, password, database)
+    #pd = PolicyDatabase(host, user, password, database)
 
     # temp
-    pd.access_device('00:17:88:6c:d6:d3', 'client_test','philapi', 'light_switch', [False, 1])
+    #pd.access_device('00:17:88:6c:d6:d3', 'client_test','philapi', 'light_switch', [False, 1])
