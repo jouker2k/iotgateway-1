@@ -24,7 +24,7 @@ import inspect
 from importlib import util
 
 from helpers import module_methods, default_args, list_modules as lm
-from plugins import philapi
+from modules import philapi
 
 from pubnub.enums import PNStatusCategory
 from pubnub.callbacks import SubscribeCallback
