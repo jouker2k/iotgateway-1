@@ -9,7 +9,7 @@ class GatewayDatabase(object):
             print("GatewayDatabase: Connected.")
 
         except _mysql.Error as e:
-            print("Error {}: {}".format(e.args[0], e.args[1]))
+            print("GatewayDatabaseError {}: {}".format(e.args[0], e.args[1]))
             sys.exit(1)
 
         # TODO: n startup need to re-subscribe to all the keys.
@@ -21,7 +21,7 @@ class GatewayDatabase(object):
         rows = cursor.fetchall()
 
         if len(rows) > 1:
-            print("WARNING: There is more than one gateway receiver key set!")
+            print("GatewayDatabaseWarning: There is more than one gateway receiver key set!")
 
         return rows[0][0]
 
@@ -31,7 +31,7 @@ class GatewayDatabase(object):
         rows = cursor.fetchall()
 
         if len(rows) > 1:
-            print("WARNING: There is more than one gateway receiver key set!")
+            print("GatewayDatabaseWarning: There is more than one gateway receiver key set!")
 
         return rows[0][0]
 
@@ -42,7 +42,7 @@ class GatewayDatabase(object):
         rows = cursor.fetchall()
 
         if len(rows) > 1:
-            print("WARNING: There is more than one secret_key key set!")
+            print("GatewayDatabaseWarning: There is more than one secret_key key set!")
 
         return rows[0][0]
 
@@ -52,7 +52,7 @@ class GatewayDatabase(object):
         rows = cursor.fetchall()
 
         if len(rows) > 1:
-            print("WARNING: There is more than one pub_key key set!")
+            print("GatewayDatabaseWarning: There is more than one pub_key key set!")
 
         return rows[0][0]
 
@@ -62,26 +62,38 @@ class GatewayDatabase(object):
         rows = cursor.fetchall()
 
         if len(rows) > 1:
-            print("WARNING: There is more than one sub_key key set!")
+            print("GatewayDatabaseWarning: There is more than one sub_key key set!")
 
         return rows[0][0]
 
-if __name__ == "__main__":
+    def auth_blacklist(self, channel_name, uuid):
+        cursor = self.connection.cursor()
+        cursor.execute("INSERT INTO auth_blacklisted(channel, user_uuid) VALUES('%s','%s');" % (channel_name, uuid))
 
-    password = input("Database password: ")
-    # database = input("Database name: ")
+        print("GatewayDatabase: UUID {} blacklisted due to violation on {} channel".format(uuid, channel_name))
 
-    # temp
-    host = 'ephesus.cs.cf.ac.uk'
-    user = 'c1312433'
+    def gateway_subscriptions(self, channel_name, uuid):
+        cursor = self.connection.cursor()
+        cursor.execute("INSERT INTO gateway_subscriptions(channel, user_uuid) VALUES('%s','%s');" % (channel_name, uuid))
 
-    database = 'c1312433'
+        print("GatewayDatabase: New subscription added to channel {} containing user {}".format(channel_name, uuid))
 
-    gd = GatewayDatabase(host, user, password, database)
-
-    # temp
-    print("Receivers key: {}".format(gd.receivers_key()))
-    print("Policy key: {}".format(gd.policy_key()))
-    print("Secret key: {}".format(gd.sec_key()))
-    print("Sub key: {}".format(gd.sub_key()))
-    print("Pub key: {}".format(gd.pub_key()))
+# if __name__ == "__main__":
+#
+#     password = input("Database password: ")
+#     # database = input("Database name: ")
+#
+#     # temp
+#     host = 'ephesus.cs.cf.ac.uk'
+#     user = 'c1312433'
+#
+#     database = 'c1312433'
+#
+#     gd = GatewayDatabase(host, user, password, database)
+#
+#     # temp
+#     print("Receivers key: {}".format(gd.receivers_key()))
+#     print("Policy key: {}".format(gd.policy_key()))
+#     print("Secret key: {}".format(gd.sec_key()))
+#     print("Sub key: {}".format(gd.sub_key()))
+#     print("Pub key: {}".format(gd.pub_key()))
