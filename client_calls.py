@@ -13,7 +13,6 @@ __author__ = "sgript"
     }
 
 '''
-
 import json
 from pubnub.enums import PNStatusCategory
 from pubnub.pubnub import PubNub, SubscribeListener
