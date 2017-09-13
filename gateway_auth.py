@@ -15,8 +15,9 @@ import string
 import random
 import json
 import time
-import gateway_database
 import hashlib
+import gateway_database
+import gateway_receiver
 
 import logging
 import pubnub
@@ -36,11 +37,11 @@ pnconfig.connect_timeout = 9^99
 pnconfig.non_subscribe_timeout = 9^99
 pnconfig.ssl = True
 pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
-pnconfig.uuid = 'gateway'
+pnconfig.uuid = 'GA'
 
 pubnub = PubNub(pnconfig)
 
-def id_generator(size=10, chars=string.ascii_uppercase + string.digits):
+def id_generator(size=10, chars=string.ascii_uppercase + string.digits): # https://stackoverflow.com/a/2257449
     return ''.join(random.choice(chars) for _ in range(size))
 
 def my_publish_callback(envelope, status):
@@ -60,9 +61,13 @@ class MySubscribeCallback(SubscribeCallback):
         print("GatewayAuth: Starting gateway database..")
         self.gd = gateway_database.GatewayDatabase(host, user, password, database)
         self.sha3_hash = hashlib.new("sha3_512")
+        self.receiver_auth_key = self.gd.receivers_key()
+
+        print("GatewayAuth: Starting the receiver..")
+        self.gr = gateway_receiver.Receiver() # We could pass params however we want GR to be independent.
 
     def presence(self, pubnub, presence):
-        if presence.channel == "gateway_auth":
+        if presence.channel == "gateway_auth" and presence.uuid != "GA":
 
             print("[1] UUID JOINED AUTH CHANNEL: {}".format(presence.uuid))
 
@@ -87,7 +92,7 @@ class MySubscribeCallback(SubscribeCallback):
                 for occupant in users: # If there is indeed multiple people in the channel only then we bother to check who.
                     print(occupant.uuid) # - lists all uuids in channel, if more than one can later 'blacklist' ones not meant to be in the channel -> "do not serve, suspicious"
 
-                    if occupant.uuid != "gateway" and occupant.uuid != presence.uuid: # only blacklist if not gateway or the legit user
+                    if occupant.uuid != "GA" and occupant.uuid != presence.uuid: # only blacklist if not gateway or the legit user
                         uuids_in_channel.append(occupant.uuid)
                         self.gd.auth_blacklist(presence.channel, occupant.uuid) # blacklist them
 
@@ -96,22 +101,26 @@ class MySubscribeCallback(SubscribeCallback):
 
         elif presence.channel != "gateway_auth" and presence.uuid == presence.channel: # uuid channel presence
             print('[2] REQUIRED USER ({}) HAS JOINED THE UUID CHANNEL ({}).'.format(presence.uuid, presence.channel))
-            authkey = id_generator()
+            users_auth_key = id_generator()
             channelName = id_generator()
 
             # Send auth key to user
             pubnub.publish().channel(presence.uuid).message(
-                {"channel": channelName, "auth_key": authkey}).async(my_publish_callback) # Send data over 1-1 channel
+                {"channel": channelName, "auth_key": users_auth_key}).async(my_publish_callback) # Send data over 1-1 channel
 
             pubnub.unsubscribe().channels(presence.uuid).execute() # no need to be subscribed to uuid channel any longer
 
             # Grant + Subscribe to new private channel.
-            pubnub.grant().channels([channelName, "policy"]).auth_keys(authkey).read(True).write(True).manage(True).ttl(0).sync()
+
+            pubnub.grant().channels([channelName]).auth_keys([users_auth_key, self.receiver_auth_key]).read(True).write(True).manage(True).ttl(0).sync()
+            self.gr.subscribe_channel(channelName)
+            # TODO: Now need to call subscription method from receiver once it's object is created on startup, then we can subscribe to this channel too on the fly.
+
             print("GatewayAuth: Connecting to private channel {}..".format(channelName))
             pubnub.subscribe().channels(channelName).execute()
             self.gd.gateway_subscriptions(channelName, presence.uuid)
 
-        elif presence.channel != "gateway_auth" and presence.uuid != presence.channel and presence.uuid != "gateway":
+        elif presence.channel != "gateway_auth" and presence.uuid != presence.channel and presence.uuid != "GA":
             print('2. UNAUTHORISED USER ({}) HAS JOINED THE UUID CHANNEL ({}).\n\n\n'.format(presence.uuid, presence.channel))
             self.gd.auth_blacklist(presence.channel, presence.uuid)
 
@@ -137,3 +146,5 @@ if __name__ == "__main__":
     pubnub.grant().channels(["gateway_auth"]).read(True).write(True).manage(True).sync()
     print("GatewayAuth: Connecting to gateway channel..")
     pubnub.subscribe().channels(["gateway_auth"]).with_presence().execute()
+
+    #pubnub.unsubscribe_all(); # TODO: Need a method to unsubscribe all on shutdown

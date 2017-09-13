@@ -25,6 +25,7 @@ from importlib import util
 
 from helpers import module_methods, default_args, list_modules as lm
 from modules import philapi
+import gateway_database
 
 from pubnub.enums import PNStatusCategory
 from pubnub.callbacks import SubscribeCallback
@@ -42,24 +43,40 @@ def my_publish_callback(envelope, status):
 
 class Receiver(SubscribeCallback):
     def __init__(self):
-        # TODO: Need to define a way to find this auth key.
-        # Passed straight from the gateway_auth?
-        # Text file?
-        # Etc. IMPORTANT
-        self.pnconfig = PNConfiguration()
-        self.pnconfig.uuid = self.uuid = 'gateway'
-        self.pnconfig.subscribe_key = self.subscribe_key = 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579'
-        self.pnconfig.publish_key = self.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
-        self.pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
-        self.pnconfig.ssl = True
-        self.pnconfig.subscribe_timeout = self.pnconfig.connect_timeout = self.pnconfig.non_subscribe_timeout = 9^99
-        self.pubnub = PubNub(self.pnconfig)
+        # TODO: Perhaps do default params for GR so if it's being called by Auth then it doesn't create new instances/saves resources, however if called independent, parameters would be used..
 
-    def subscribe_channel(self, channel_name, auth_key):
-        self.pnconfig.auth_key = auth_key
-        self.pubnub = PubNub(self.pnconfig)
+        password = input("Database password: ")
+        host = 'ephesus.cs.cf.ac.uk'
+        user = 'c1312433'
+        database = 'c1312433'
+
+        print("GatewayReceiver: Starting gateway database..")
+        gd = gateway_database.GatewayDatabase(host, user, password, database)
+
+        pnconfig = PNConfiguration()
+
+
+        pnconfig.subscribe_key = gd.sub_key()
+        pnconfig.publish_key = gd.pub_key()
+        pnconfig.auth_key =  gd.receivers_key()
+        pnconfig.secret_key = gd.sec_key()
+
+        pnconfig.uuid = 'GR'
+        pnconfig.ssl = True
+        pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
+        pnconfig.subscribe_timeout = pnconfig.connect_timeout = pnconfig.non_subscribe_timeout = 9^99
+
+        self.pubnub = PubNub(pnconfig)
         self.pubnub.add_listener(self)
 
+        print("GatewayReceiver: Subscribing to the Policy server..")
+        self.pubnub.grant().channels("policy").auth_keys([pnconfig.auth_key, gd.policy_key()]).read(True).write(True).manage(True).ttl(0).sync()
+        self.subscribe_channel("policy")
+
+        # TODO: On init need to subscribe to all channels required to recover from crashes.
+
+    def subscribe_channel(self, channel_name):
+        print("GatewayReceiver: Subscribed to {}".format(channel_name))
         self.pubnub.subscribe().channels(channel_name).execute()
 
     def publish_request(self, channel, msg):
@@ -93,8 +110,8 @@ class Receiver(SubscribeCallback):
 
     def message(self, pubnub, message):
         msg = message.message
-
-        if message.channel not "policy":
+        print(msg)
+        if message.channel != "policy":
             if 'enquiry' in msg and msg['enquiry'] is True:
                 # TODO: Still need something to list available modules.
                 if 'module_name' in msg:
@@ -161,16 +178,23 @@ class Receiver(SubscribeCallback):
                         else:
                             print("{}: Error no module name supplied even when not an enquiry".format(message.channel)) # tidy up later
 
-        elif message.channel is "policy":
+            # TODO: Below error works, but can be erroneous, so will need to checked
+            # Could be triggered by receiver itself, so just checking for "error" in msg
+            # to trigger it, may not be enough.
+            # else:
+            #     if "error" not in msg:
+            #         error_msg = {"error": "There was an issue, your JSON does not contain the correct request information."}
+            #         self.publish_request(message.channel, error_msg)
+
+        elif message.channel == "policy":
             # {'access': 'rejected', 'request': {'user_uuid': 'client_test', 'enquiry': False, 'module_name': 'philapi', 'requested_function': 'light_switch', 'parameters': [False, 1]}}
             # TODO for later: Now need to just run function based on what policy server has authorised to run.
 
 
-        # TODO: IMPORTANT: Before carrying out calls, need to negotiate some security policy...
-        pass
+            pass
 
 
-if __name__ == "__main__":
-    receiver = Receiver()
-    receiver.subscribe_channel('NO40ACE6I6', 'V3SIPF92JQ')
+# if __name__ == "__main__":
+#     receiver = Receiver()
+#     receiver.subscribe_channel('NO40ACE6I6', 'V3SIPF92JQ')
     # TTL needs to be 0

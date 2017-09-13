@@ -8,7 +8,7 @@ from pubnub.pubnub import PubNub
 pnconfig = PNConfiguration()
 
 def init(auth):
-    pnconfig.uuid = 'thissACdsssdddididii3eieieidodo--sodsososwososdossosop'
+    pnconfig.uuid = 'eeeleelelelelele1le--2d11o17sos11100000wososdossosop'
     pnconfig.auth_key = auth
     pnconfig.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
     pnconfig.subscribe_key = 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579'
@@ -27,7 +27,6 @@ def my_publish_callback(envelope, status):
         print("Client: Message successfully sent to gateway.")
     else:
         print("Client: Error transmitting message to gateway.")
-
 
 class MySubscribeCallback(SubscribeCallback):
     authed = False

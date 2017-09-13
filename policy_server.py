@@ -7,14 +7,6 @@ from pubnub.callbacks import SubscribeCallback
 from pubnub.pubnub import PubNub
 from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
 
-pnconfig = PNConfiguration()
-
-pnconfig.subscribe_key = 'demo'
-pnconfig.publish_key = 'demo'
-
-pubnub = PubNub(pnconfig)
-
-
 def my_publish_callback(envelope, status):
     # Check whether request successfully completed or not
     if not status.is_error():
@@ -29,7 +21,7 @@ class PolicyServer(SubscribeCallback):
 
     def __init__(self):
         self.pnconfig = PNConfiguration()
-        self.pnconfig.uuid = 'policy'
+        self.pnconfig.uuid = 'GP'
         self.pnconfig.subscribe_key = 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579'
         self.pnconfig.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
         self.pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR

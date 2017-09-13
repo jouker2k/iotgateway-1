@@ -12,9 +12,6 @@ class GatewayDatabase(object):
             print("GatewayDatabaseError {}: {}".format(e.args[0], e.args[1]))
             sys.exit(1)
 
-        # TODO: n startup need to re-subscribe to all the keys.
-
-
     def receivers_key(self):
         cursor = self.connection.cursor()
         row = cursor.execute("SELECT auth_key_receiver FROM gateway_keys")
