@@ -60,11 +60,11 @@ class MySubscribeCallback(SubscribeCallback):
 
         print("GatewayAuth: Starting gateway database..")
         self.gd = gateway_database.GatewayDatabase(host, user, password, database)
-        self.sha3_hash = hashlib.new("sha3_512")
-        self.receiver_auth_key = self.gd.receivers_key()
 
         print("GatewayAuth: Starting the receiver..")
         self.gr = gateway_receiver.Receiver() # We could pass params however we want GR to be independent.
+
+        self.receiver_auth_key = self.gd.receivers_key()
 
     def presence(self, pubnub, presence):
         if presence.channel == "gateway_auth" and presence.uuid != "GA":
@@ -76,8 +76,10 @@ class MySubscribeCallback(SubscribeCallback):
             pubnub.subscribe().channels(presence.uuid).with_presence().execute()
 
             # Send hashed UUID over the gateway, client will know its UUID so it can hash and compute it.
-            encode = self.sha3_hash.update((presence.uuid).encode("UTF-8"))
-            pubnub.publish().channel('gateway_auth').message(self.sha3_hash.hexdigest()).async(my_publish_callback)
+            sha3_hash = hashlib.new("sha3_512")
+
+            encode = sha3_hash.update((presence.uuid).encode("UTF-8"))
+            pubnub.publish().channel('gateway_auth').message(sha3_hash.hexdigest()).async(my_publish_callback)
 
             # Check UUID channel info
             envelope = pubnub.here_now().channels(presence.uuid).include_uuids(True).include_state(True).sync()

@@ -58,18 +58,13 @@ class Client(object):
     def enquire_module_methods(self, module):
         return(client.publish_request(self.channel, {"enquiry": True, "module_name": module}))
 
-class SmartDevice(object):
-    def __init__(self, client):
-        self.client = client
-
-    def device_request(self, uuid, enquiry_bool, module_name = None, requested_function = None, parameters = False):
-        jsonmsg = {"user_uuid": uuid, "enquiry": enquiry_bool, "module_name": module_name, "requested_function": requested_function, "parameters": parameters}
+    def device_request(self, enquiry_bool, module_name = None, requested_function = None, parameters = False):
+        jsonmsg = {"user_uuid": self.pnconfig.uuid, "enquiry": enquiry_bool, "module_name": module_name, "requested_function": requested_function, "parameters": parameters}
         return(client.publish_request(client.channel, jsonmsg))
 
 if __name__ == "__main__":
     client = Client('client_test', 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579', 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f')
     client.subscribe_channel('NO40ACE6I6', 'V3SIPF92JQ')
 
-    smart = SmartDevice(client)
-    result = smart.device_request(client.pnconfig.uuid, False, "philapi", "light_switch", [False, 1])
+    result = client.device_request(False, "philapi", "light_switch", [False, 1])
     print(str(result))

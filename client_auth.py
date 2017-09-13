@@ -5,22 +5,6 @@ from pubnub.enums import PNStatusCategory
 from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
 from pubnub.pubnub import PubNub
 
-pnconfig = PNConfiguration()
-
-def init(auth):
-    pnconfig.uuid = 'eeeleelelelelele1le--2d11o17sos11100000wososdossosop'
-    pnconfig.auth_key = auth
-    pnconfig.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
-    pnconfig.subscribe_key = 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579'
-    pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
-    pnconfig.ssl = True
-    pnconfig.subscribe_timeout = 9^99
-    pnconfig.connect_timeout = 9^99
-    pnconfig.non_subscribe_timeout = 9^99
-
-    pubnub = PubNub(pnconfig)
-
-    return pubnub
 
 def my_publish_callback(envelope, status):
     if not status.is_error():
@@ -28,28 +12,27 @@ def my_publish_callback(envelope, status):
     else:
         print("Client: Error transmitting message to gateway.")
 
-class MySubscribeCallback(SubscribeCallback):
+class Client(SubscribeCallback):
     authed = False
-    def __init__(self):
+    def __init__(self, uuid):
+        self.pnconfig = PNConfiguration()
+        self.pnconfig.uuid = uuid
+        self.pnconfig.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
+        self.pnconfig.subscribe_key = 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579'
+        self.pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
+        self.pnconfig.ssl = True
+        self.pnconfig.subscribe_timeout = 9^99
+        self.pnconfig.connect_timeout = 9^99
+        self.pnconfig.non_subscribe_timeout = 9^99
+
+        self.pubnub = PubNub(self.pnconfig)
+        self.pubnub.add_listener(self)
+
+        print("Client: Connecting to gateway to be authenticated..")
+        self.pubnub.subscribe().channels(["gateway_auth"]).execute()
+
         self.uuid_hash = hashlib.new("sha3_512")
-        encode = self.uuid_hash.update((pnconfig.uuid).encode("UTF-8"))
-
-    def auth(self, auth_info):
-
-        print("Auth info: " + str(auth_info))
-
-        # # # Save both of these to file for client for proof-of-concept
-        authkey = auth_info['auth_key']
-        channel = auth_info['channel']
-        # # #
-
-        # We now use our auth key for private channel.
-        pubnub = init(authkey)
-
-        pubnub.add_listener(MySubscribeCallback())
-        print("Client Connecting to private channel {}..".format(channel))
-        pubnub.subscribe().channels(channel).execute()
-        self.authed = True
+        encode = self.uuid_hash.update((self.pnconfig.uuid).encode("UTF-8"))
 
     def presence(self, pubnub, presence):
         pass  # Nothing to do for client.
@@ -65,14 +48,31 @@ class MySubscribeCallback(SubscribeCallback):
             print("Client: Reconnected.")
 
     def message(self, pubnub, message):
-        if message.message == self.uuid_hash.hexdigest():
+        print(message.message)
+        uuid_hash = hashlib.new("sha3_512")
+        encode = uuid_hash.update((self.pnconfig.uuid).encode("UTF-8"))
+        print("hash digest is: " + uuid_hash.hexdigest())
+        if message.message == uuid_hash.hexdigest():
             print("Client: Connecting to UUID channel to retrieve private channel information..")
-            pubnub.subscribe().channels(pnconfig.uuid).execute()
-        if 'auth_key' in str(message.message) and not self.authed:
-            self.auth(message.message)
+            pubnub.subscribe().channels(self.pnconfig.uuid).execute()
+
+        if 'auth_key' in message.message and not self.authed:
+            # TODO Integrate client calls into here as well - So drop subscription of old channel and subscribe to new one.
+            self.pubnub.unsubscribe().channels(self.pnconfig.uuid).execute();
+
+            authkey = message.message['auth_key']
+            channel = message.message['channel']
+
+            self.pnconfig.auth_key = authkey
+            print("Client Connecting to private channel {}..".format(message.channel))
+            self.pubnub.subscribe().channels(message.channel).execute()
+            self.authed = True
+
+            testing = input("this is a test: ")
+            print(testing)
+
+
+            pass
 
 if __name__ == "__main__":
-    pubnub = init('')
-    pubnub.add_listener(MySubscribeCallback())
-    print("Client: Connecting to gateway to be authenticated..")
-    pubnub.subscribe().channels(["gateway_auth"]).execute()
+    client = Client("65628823891u2991913579199kkkkkk")
