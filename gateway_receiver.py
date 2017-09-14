@@ -184,26 +184,21 @@ class Receiver(SubscribeCallback):
             #         self.publish_request(message.channel, error_msg)
 
         elif message.channel == "policy":
+            # {'access': 'rejected', 'request': {'user_uuid': 'client_test', 'enquiry': False, 'module_name': 'philapi', 'requested_function': 'light_switch', 'parameters': [False, 1]}}
 
+            if "access" in msg:
 
-            print("Received response from policy server..")
+                if msg["access"] == "granted":
+                    print("Access on {} granted, with the request: {}".format(msg['channel'], msg['request']))
+                    module = sys.modules['modules.' + msg['request']['module_name']]
+                    method_requested = getattr(module, msg['request']['requested_function'])
+                    result = method_requested(*msg['request']['parameters'])
 
-            try: # Getting result from policy server to say request rejected/granted, then run the method.
-                # {'access': 'rejected', 'request': {'user_uuid': 'client_test', 'enquiry': False, 'module_name': 'philapi', 'requested_function': 'light_switch', 'parameters': [False, 1]}}
+                    self.publish_request(msg['channel'], {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": result})
 
-                if "access" in msg:
-                    try:
-                        print("TRYING")
-                        module = sys.modules['modules.' + msg['request']['module_name']]
-                        method_requested = getattr(module, msg['request']['requested_function'])
-                        result = method_requested(*msg['request']['parameters'])
-                        print("RESULT OF CALL: " + str(result))
-                    except:
-                        print("There was an issuee....")
-                        pass
-            except:
-                pass
-
+                else:
+                    print("Access on {} rejected, with the request: {}".format(msg['channel'], msg['request']))
+                    self.publish_request(msg['channel'], {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": "rejected"})
 
 
 # if __name__ == "__main__":

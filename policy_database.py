@@ -31,7 +31,11 @@ class PolicyDatabase(object):
 
         print(rows)
 
-    def access_device(self, mac_address, uuid, module_name, required_function, parameters):
+    def access_log(self, user_uuid, channel_name, module_name, method_name, parameters, status):
+        cursor = self.connection.cursor()
+        cursor.execute("INSERT INTO access_log(user_uuid, channel_name, module_name, method_name, parameters, status) VALUES('%s','%s','%s','%s','%s','%s');" % (user_uuid, channel_name, module_name, method_name, parameters, status))
+
+    def access_device(self, channel, mac_address, uuid, module_name, required_function, parameters):
         cursor = self.connection.cursor()
 
         # TODO: Going have to redo this part

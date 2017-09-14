@@ -7,6 +7,8 @@ from pubnub.enums import PNStatusCategory
 from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
 from pubnub.pubnub import PubNub
 
+# TODO: User UUID currently has to be sent by Client, perhaps DB can auto-check this by checking which channel belongs to which user.
+
 
 def my_publish_callback(envelope, status):
     if not status.is_error():
@@ -95,31 +97,34 @@ class Client(SubscribeCallback):
                 if show_modules is "Y":
                     self.enquire_modules(self.channel)
 
-        else:
-            try: # Getting available modules and choosing one to get methods from.
-                module_options = message.message['enquiry']['modules']
-                show_module_methods = input("Choose a module to call methods from {}: ".format(module_options))
-                self.enquire_module_methods(self.channel, show_module_methods)
-            except:
-                pass
+        elif 'enquiry' in message.message:
+                try: # Getting available modules and choosing one to get methods from.
+                    module_options = message.message['enquiry']['modules']
+                    show_module_methods = input("Choose a module to call methods from {}: ".format(module_options))
+                    self.enquire_module_methods(self.channel, show_module_methods)
+                except:
+                    pass
 
-            try:
-                module_methods = message.message['enquiry']['module_methods']
-                method_chosen = input("Choose a method to call {}: ".format(module_methods))
-                print("You chose: {}".format(module_methods[method_chosen]))
+                try:
+                    module_methods = message.message['enquiry']['module_methods']
+                    method_chosen = input("Choose a method to call {}: ".format(module_methods))
+                    print("You chose: {}".format(module_methods[method_chosen]))
 
-                print("In corresponding order, please enter the parameters in an array below, leave blank if none:")
-                params = input()
-                print(params)
+                    print("In corresponding order, please enter the parameters in an array below, leave blank if none:")
+                    params = input()
+                    print(params)
 
-                self.device_request(self.channel, False, message.message['enquiry']['module_name'], method_chosen, ast.literal_eval(params))
+                    self.device_request(self.channel, False, message.message['enquiry']['module_name'], method_chosen, ast.literal_eval(params))
 
-                pass # TODO
-            except:
-                pass
+                    pass # TODO
+                except:
+                    pass
+
+        elif 'result' in message.message:
+            print("Result retrieved: " + str(message.message))
 
 
         #print(message.message)
 
 if __name__ == "__main__":
-    client = Client("65218105997k")
+    client = Client("652sss1500s97k")

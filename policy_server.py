@@ -68,12 +68,14 @@ class PolicyServer(SubscribeCallback):
 
         if 'user_uuid' in msg['request'] and 'mac_address' in msg:
 
-            access = self.pd.access_device(msg['mac_address'], msg['request']['user_uuid'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'])[0]
-            if access:
-                self.publish_message(message.channel, {"access": "granted", "request": msg['request']})
-            else:
-                self.publish_message(message.channel, {"access": "rejected", "request": msg['request']})
+            access = self.pd.access_device(msg['channel'], msg['mac_address'], msg['request']['user_uuid'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'])[0]
 
+            status = "granted" if access is True else "rejected"
+
+            self.publish_message(message.channel, {"access": status, "channel": msg['channel'], "request": msg['request']})
+            self.pd.access_log(msg['request']['user_uuid'], msg['channel'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'], status)
+
+            print("PolicyServer: Access on {} by {} logged as {}".format(msg['channel'], msg['request']['user_uuid'], status))
 
         else:
             print("Not received expected parameters.")
