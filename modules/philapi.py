@@ -9,6 +9,9 @@ import json
 # REVIEW TEMPORARY PLACEMENT OF KEY
 bulb_key = "PEuzGOSH9rFqcjqDOCREmpeBpdT-kc-zbFY3tyXh"
 
+class ButtonNotPressed(Exception):
+    pass
+
 def bridge_ip():
     list_bridges = requests.get('https://www.meethue.com/api/nupnp')
     bridge_ip = json.loads(list_bridges.text) # string to json

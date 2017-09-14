@@ -67,7 +67,7 @@ class PolicyDatabase(object):
 
         if delta > start_time and delta < end_time:
             print("Time within range")
-            return True
+            return [True, "time_granted"]
 
         else:
             print("Time not within range")

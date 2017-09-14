@@ -67,6 +67,7 @@ class MySubscribeCallback(SubscribeCallback):
         self.receiver_auth_key = self.gd.receivers_key()
 
     def presence(self, pubnub, presence):
+
         if presence.channel == "gateway_auth" and presence.uuid != "GA":
 
             print("[1] UUID JOINED AUTH CHANNEL: {}".format(presence.uuid))
@@ -90,6 +91,7 @@ class MySubscribeCallback(SubscribeCallback):
                 print("WARNING! Someone may be spying in the channel")
                 uuids_in_channel = []
                 users = envelope.result.channels[0].occupants
+
 
                 for occupant in users: # If there is indeed multiple people in the channel only then we bother to check who.
                     print(occupant.uuid) # - lists all uuids in channel, if more than one can later 'blacklist' ones not meant to be in the channel -> "do not serve, suspicious"

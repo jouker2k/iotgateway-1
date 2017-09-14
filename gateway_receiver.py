@@ -26,6 +26,7 @@ from importlib import util
 from helpers import module_methods, default_args, list_modules as lm
 from modules import philapi
 import gateway_database
+import policy_server
 
 from pubnub.enums import PNStatusCategory
 from pubnub.callbacks import SubscribeCallback
@@ -43,7 +44,7 @@ def my_publish_callback(envelope, status):
 
 class Receiver(SubscribeCallback):
     def __init__(self):
-        # TODO: Perhaps do default params for GR so if it's being called by Auth then it doesn't create new instances/saves resources, however if called independent, parameters would be used..
+        # TODO: Perhaps do default params for GR so if it's being called by Auth then it doesn't create new instances/saves resources, however if called independent, parameters would be used.. + Idea: Second constructor?
 
         password = input("Database password: ")
         host = 'ephesus.cs.cf.ac.uk'
@@ -73,6 +74,7 @@ class Receiver(SubscribeCallback):
         self.pubnub.grant().channels("policy").auth_keys([pnconfig.auth_key, gd.policy_key()]).read(True).write(True).manage(True).ttl(0).sync()
         self.subscribe_channel("policy")
 
+        ps = policy_server.PolicyServer()
         # TODO: On init need to subscribe to all channels required to recover from crashes.
 
     def subscribe_channel(self, channel_name):
@@ -90,17 +92,13 @@ class Receiver(SubscribeCallback):
 
     def status(self, pubnub, status):
         if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
-            pass  # This event happens when radio / connectivity is lost
+            print('GatewayReceiver: Unexpectedly disconnected.')
 
         elif status.category == PNStatusCategory.PNConnectedCategory:
-            print('connected?')
-            pass
+            print('GatewayReceiver: Connected.')
 
         elif status.category == PNStatusCategory.PNReconnectedCategory:
-            pass
-
-        elif status.category == PNStatusCategory.PNDecryptionErrorCategory:
-            pass
+            print('GatewayReceiver: Reconnected.')
 
     def delete_defaults(self, function, array):
         defaults = default_args.get_default_args(function)
@@ -134,13 +132,12 @@ class Receiver(SubscribeCallback):
                             # Going to remove any default parameters - no need to supply keys etc.
                             self.delete_defaults(function, dictionary_of_functions[method])
 
-                        enquiry_response = {"module_name": msg['module_name'], "enquiry": dictionary_of_functions}
+                        enquiry_response = {"enquiry": {"module_name": msg['module_name'], "module_methods": dictionary_of_functions}}
 
                         self.publish_request(message.channel, enquiry_response)
 
                 # Else if no module name supplied just show list of them available.
                 elif 'module_name' not in msg and msg['enquiry'] is True:
-
 
                     self.publish_request(message.channel, {"enquiry": {"modules": lm.list_modules()}})
 
@@ -187,11 +184,26 @@ class Receiver(SubscribeCallback):
             #         self.publish_request(message.channel, error_msg)
 
         elif message.channel == "policy":
-            # {'access': 'rejected', 'request': {'user_uuid': 'client_test', 'enquiry': False, 'module_name': 'philapi', 'requested_function': 'light_switch', 'parameters': [False, 1]}}
-            # TODO for later: Now need to just run function based on what policy server has authorised to run.
 
 
-            pass
+            print("Received response from policy server..")
+
+            try: # Getting result from policy server to say request rejected/granted, then run the method.
+                # {'access': 'rejected', 'request': {'user_uuid': 'client_test', 'enquiry': False, 'module_name': 'philapi', 'requested_function': 'light_switch', 'parameters': [False, 1]}}
+
+                if "access" in msg:
+                    try:
+                        print("TRYING")
+                        module = sys.modules['modules.' + msg['request']['module_name']]
+                        method_requested = getattr(module, msg['request']['requested_function'])
+                        result = method_requested(*msg['request']['parameters'])
+                        print("RESULT OF CALL: " + str(result))
+                    except:
+                        print("There was an issuee....")
+                        pass
+            except:
+                pass
+
 
 
 # if __name__ == "__main__":

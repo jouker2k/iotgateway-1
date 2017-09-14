@@ -1,3 +1,5 @@
+import json
+import ast
 import hashlib
 
 from pubnub.callbacks import SubscribeCallback
@@ -13,8 +15,10 @@ def my_publish_callback(envelope, status):
         print("Client: Error transmitting message to gateway.")
 
 class Client(SubscribeCallback):
-    authed = False
+
     def __init__(self, uuid):
+        self.authed = False
+
         self.pnconfig = PNConfiguration()
         self.pnconfig.uuid = uuid
         self.pnconfig.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
@@ -25,6 +29,8 @@ class Client(SubscribeCallback):
         self.pnconfig.connect_timeout = 9^99
         self.pnconfig.non_subscribe_timeout = 9^99
 
+        self.pnconfig.auth_key = self.chanenl = ""
+
         self.pubnub = PubNub(self.pnconfig)
         self.pubnub.add_listener(self)
 
@@ -34,45 +40,86 @@ class Client(SubscribeCallback):
         self.uuid_hash = hashlib.new("sha3_512")
         encode = self.uuid_hash.update((self.pnconfig.uuid).encode("UTF-8"))
 
-    def presence(self, pubnub, presence):
-        pass  # Nothing to do for client.
+    def publish_request(self, channel, msg):
+        if type(msg) is dict:
+            msg = json.loads(json.dumps(msg))
+        else:
+            msg = msg
 
-    def status(self, pubnub, status):
-        if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
-            print("Client: Unexpectedly disconnected.")
+        self.pubnub.publish().channel(channel).message(msg).sync()
 
-        elif status.category == PNStatusCategory.PNConnectedCategory:
-            print("Client: Connected.")
+    def enquire_modules(self, channel):
+        self.publish_request(channel, {"enquiry": True})
 
-        elif status.category == PNStatusCategory.PNReconnectedCategory:
-            print("Client: Reconnected.")
+    def enquire_module_methods(self, channel, module):
+        return(self.publish_request(channel, {"enquiry": True, "module_name": module}))
+
+    def device_request(self, channel, enquiry_bool, module_name = None, requested_function = None, parameters = False):
+        jsonmsg = {"user_uuid": self.pnconfig.uuid, "enquiry": enquiry_bool, "module_name": module_name, "requested_function": requested_function, "parameters": parameters}
+        return(self.publish_request(channel, jsonmsg))
+
+    # def status(self, pubnub, status):
+    #     if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
+    #         print("Client: Unexpectedly disconnected.")
+    #
+    #     elif status.category == PNStatusCategory.PNConnectedCategory:
+    #         print("Client: Connected.")
+    #
+    #     elif status.category == PNStatusCategory.PNReconnectedCategory:
+    #         print("Client: Reconnected.")
 
     def message(self, pubnub, message):
-        print(message.message)
-        uuid_hash = hashlib.new("sha3_512")
-        encode = uuid_hash.update((self.pnconfig.uuid).encode("UTF-8"))
-        print("hash digest is: " + uuid_hash.hexdigest())
-        if message.message == uuid_hash.hexdigest():
-            print("Client: Connecting to UUID channel to retrieve private channel information..")
-            pubnub.subscribe().channels(self.pnconfig.uuid).execute()
 
-        if 'auth_key' in message.message and not self.authed:
-            # TODO Integrate client calls into here as well - So drop subscription of old channel and subscribe to new one.
-            self.pubnub.unsubscribe().channels(self.pnconfig.uuid).execute();
+        if not self.authed:
+            uuid_hash = hashlib.new("sha3_512")
+            encode = uuid_hash.update((self.pnconfig.uuid).encode("UTF-8"))
 
-            authkey = message.message['auth_key']
-            channel = message.message['channel']
+            if message.message == uuid_hash.hexdigest():
+                print("Client: Connecting to UUID channel to retrieve private channel information..")
+                self.pubnub.subscribe().channels(self.pnconfig.uuid).execute()
 
-            self.pnconfig.auth_key = authkey
-            print("Client Connecting to private channel {}..".format(message.channel))
-            self.pubnub.subscribe().channels(message.channel).execute()
-            self.authed = True
+            if 'auth_key' in message.message:
+                # TODO Integrate client calls into here as well - So drop subscription of old channel and subscribe to new one.
+                self.pubnub.unsubscribe().channels(self.pnconfig.uuid).execute();
 
-            testing = input("this is a test: ")
-            print(testing)
+                self.channel = message.message['channel']
+                self.pnconfig.auth_key = message.message['auth_key']
+
+                print(self.channel)
+
+                print("Client Connecting to private channel {}..".format(message.channel))
+                self.pubnub.subscribe().channels(self.channel).execute()
+                self.authed = True
+
+                show_modules = input("Show modules available (Y/n)? ")
+                if show_modules is "Y":
+                    self.enquire_modules(self.channel)
+
+        else:
+            try: # Getting available modules and choosing one to get methods from.
+                module_options = message.message['enquiry']['modules']
+                show_module_methods = input("Choose a module to call methods from {}: ".format(module_options))
+                self.enquire_module_methods(self.channel, show_module_methods)
+            except:
+                pass
+
+            try:
+                module_methods = message.message['enquiry']['module_methods']
+                method_chosen = input("Choose a method to call {}: ".format(module_methods))
+                print("You chose: {}".format(module_methods[method_chosen]))
+
+                print("In corresponding order, please enter the parameters in an array below, leave blank if none:")
+                params = input()
+                print(params)
+
+                self.device_request(self.channel, False, message.message['enquiry']['module_name'], method_chosen, ast.literal_eval(params))
+
+                pass # TODO
+            except:
+                pass
 
 
-            pass
+        #print(message.message)
 
 if __name__ == "__main__":
-    client = Client("65628823891u2991913579199kkkkkk")
+    client = Client("65218105997k")

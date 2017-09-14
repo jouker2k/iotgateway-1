@@ -89,5 +89,5 @@ class PolicyServer(SubscribeCallback):
         print(channel)
         self.pubnub.publish().channel(channel).message(response).async(my_publish_callback)
 
-if __name__ == "__main__":
-    ps = PolicyServer()
+# if __name__ == "__main__":
+#     ps = PolicyServer()
