@@ -21,7 +21,6 @@ def bridge_ip():
     else:
         bridge_ip = bridge_ip[0]['internalipaddress'] # if just one bridge, take its ip
 
-    print(bridge_ip)
     return bridge_ip
 
 def bridge_auth():
@@ -65,20 +64,21 @@ def show_hues(bridge_key = bulb_key):
     for bulb_id in bulbs:
         print("Bulb ID: " + bulb_id + " (Name: {})".format(bulbs[bulb_id]['name'])) # perhaps make this into a JSON instead for client's convenience
 
-    print(', '.join(map(str, bulbs_available)))
+    #print(', '.join(map(str, bulbs_available)))
+    return ', '.join(map(str, bulbs_available))
 
 def light_switch(state, bulb_id, bridge_key = bulb_key):
     api_url = 'http://{0}/api/{1}/lights/{2}/state'.format(bridge_ip(), bridge_key, bulb_id)
     data = json.dumps({"on":state})
     req = requests.put(api_url, data)
 
-    return(req.text)
+    return req.text
 
 def light_brightness(state, bulb_id, bridge_key = bulb_key):
     api_url = 'http://{0}/api/{1}/lights/{2}/state'.format(bridge_ip(), bridge_key, bulb_id)
 
     if state < 1 or state > 100:
-        print('error')
+        return {"error": "light brightness should be between 1 or 100"}
     else:
         bri_lvl = int((state / 100) * 254)
 
@@ -88,7 +88,7 @@ def light_brightness(state, bulb_id, bridge_key = bulb_key):
         if 'success' in result:
             print('Bulb {0} brightness changed to {1}'.format(bulb_id, state))
 
-        print(req.text)
+        return req.text
 
 def get_mac():
     global bulb_key
@@ -101,3 +101,4 @@ def get_mac():
 
 #temp
 #device_info(1, "on", True, "PEuzGOSH9rFqcjqDOCREmpeBpdT-kc-zbFY3tyXh")
+# print(light_switch(False, 1))

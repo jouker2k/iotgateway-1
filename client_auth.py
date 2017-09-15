@@ -89,7 +89,7 @@ class Client(SubscribeCallback):
 
                 print(self.channel)
 
-                print("Client Connecting to private channel {}..".format(message.channel))
+                print("Client Connecting to private channel {}..".format(self.channel))
                 self.pubnub.subscribe().channels(self.channel).execute()
                 self.authed = True
 
@@ -127,4 +127,4 @@ class Client(SubscribeCallback):
         #print(message.message)
 
 if __name__ == "__main__":
-    client = Client("652sss1500s97k")
+    client = Client("hssTlienot__UD1")

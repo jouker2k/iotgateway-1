@@ -79,7 +79,7 @@ class Receiver(SubscribeCallback):
 
     def subscribe_channel(self, channel_name):
         print("GatewayReceiver: Subscribed to {}".format(channel_name))
-        self.pubnub.subscribe().channels(channel_name).execute()
+        self.pubnub.subscribe().channels(channel_name).with_presence().execute()
 
     def publish_request(self, channel, msg):
         # REVIEW: May need to format py to json
