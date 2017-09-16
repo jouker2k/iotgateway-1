@@ -108,7 +108,7 @@ class Client(SubscribeCallback):
                 try:
                     module_methods = message.message['enquiry']['module_methods']
                     method_chosen = input("Choose a method to call {}: ".format(module_methods))
-                    print("You chose: {}".format(module_methods[method_chosen]))
+                    print("You chose: {}".format(method_chosen))
 
                     print("In corresponding order, please enter the parameters in an array below, leave blank if none:")
                     params = input()
@@ -122,9 +122,9 @@ class Client(SubscribeCallback):
 
         elif 'result' in message.message:
             print("Result retrieved: " + str(message.message))
-
+            self.enquire_modules(self.channel)
 
         #print(message.message)
 
 if __name__ == "__main__":
-    client = Client("hssTlienot__UD1")
+    client = Client("wre9o009i99_oo-020r399r90_100000893284823849")

@@ -24,7 +24,7 @@ import inspect
 from importlib import util
 
 from helpers import module_methods, default_args, list_modules as lm
-from modules import philapi
+from modules import *
 import gateway_database
 import policy_server
 

@@ -59,13 +59,13 @@ def show_hues(bridge_key = bulb_key):
 
     # like in bridge_auth_key func will need to dump the json using dumps() then use loads()
     bulbs = json.loads(req.text)
-    print(bulbs)
-    bulbs_available = []
+
+    bulbs_available = {}
     for bulb_id in bulbs:
-        print("Bulb ID: " + bulb_id + " (Name: {})".format(bulbs[bulb_id]['name'])) # perhaps make this into a JSON instead for client's convenience
+         bulbs_available[bulbs[bulb_id]['name']] = bulb_id
 
     #print(', '.join(map(str, bulbs_available)))
-    return ', '.join(map(str, bulbs_available))
+    return bulbs_available
 
 def light_switch(state, bulb_id, bridge_key = bulb_key):
     api_url = 'http://{0}/api/{1}/lights/{2}/state'.format(bridge_ip(), bridge_key, bulb_id)
