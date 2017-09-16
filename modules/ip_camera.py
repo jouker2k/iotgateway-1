@@ -27,3 +27,7 @@ def guide(func):
 
 
     return 0
+
+
+def get_mac():
+    return "00:00:00:00:00:00" # Required but no way to reliably extract, TODO perhaps.

@@ -20,7 +20,6 @@ class Client(SubscribeCallback):
 
     def __init__(self, uuid):
         self.authed = False
-
         self.pnconfig = PNConfiguration()
         self.pnconfig.uuid = uuid
         self.pnconfig.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
@@ -71,7 +70,6 @@ class Client(SubscribeCallback):
     #         print("Client: Reconnected.")
 
     def message(self, pubnub, message):
-
         if not self.authed:
             uuid_hash = hashlib.new("sha3_512")
             encode = uuid_hash.update((self.pnconfig.uuid).encode("UTF-8"))
@@ -81,17 +79,14 @@ class Client(SubscribeCallback):
                 self.pubnub.subscribe().channels(self.pnconfig.uuid).execute()
 
             if 'auth_key' in message.message:
-                # TODO Integrate client calls into here as well - So drop subscription of old channel and subscribe to new one.
                 self.pubnub.unsubscribe().channels(self.pnconfig.uuid).execute();
 
                 self.channel = message.message['channel']
                 self.pnconfig.auth_key = message.message['auth_key']
-
-                print(self.channel)
+                self.authed = True
 
                 print("Client Connecting to private channel {}..".format(self.channel))
                 self.pubnub.subscribe().channels(self.channel).execute()
-                self.authed = True
 
                 show_modules = input("Show modules available (Y/n)? ")
                 if show_modules is "Y":
@@ -112,19 +107,15 @@ class Client(SubscribeCallback):
 
                     print("In corresponding order, please enter the parameters in an array below, leave blank if none:")
                     params = input()
-                    print(params)
 
                     self.device_request(self.channel, False, message.message['enquiry']['module_name'], method_chosen, ast.literal_eval(params))
 
-                    pass # TODO
                 except:
                     pass
 
         elif 'result' in message.message:
-            print("Result retrieved: " + str(message.message))
+            print("response retrieved: " + str(message.message))
             self.enquire_modules(self.channel)
 
-        #print(message.message)
-
 if __name__ == "__main__":
-    client = Client("wre9o009i99_oo-020r399r90_100000893284823849")
+    client = Client("wre9w_009i_o__2--19r900093284823849")

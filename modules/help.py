@@ -1,15 +1,16 @@
 import os
 import sys
+from . import *
 
 def guide(module, func):
     try:
-        i = __import__(module)
+        i = sys.modules['modules.'+module]
         method = getattr(i, func)
 
         return {"result": method.__doc__}
 
     except ModuleNotFoundError:
-        return {"error": "module could not be found.."}
+        return {"module_error": "module could not be found.."}
 
 def get_mac():
-    return 0
+    return "00:00:00:00:00:00" # Required, but none here.

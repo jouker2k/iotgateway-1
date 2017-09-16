@@ -64,31 +64,31 @@ class PolicyServer(SubscribeCallback):
     '''device_id expected to be MAC address'''
     def message(self, pubnub, message):
         msg = message.message
-        print(message.message)
 
-        if 'user_uuid' in msg['request'] and 'mac_address' in msg:
+        if 'access' not in msg:
+            if msg['request']['module_name'] != 'help':
+                if 'user_uuid' in msg['request'] and 'mac_address' in msg:
 
-            access = self.pd.access_device(msg['channel'], msg['mac_address'], msg['request']['user_uuid'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'])[0]
+                    access = self.pd.access_device(msg['channel'], msg['mac_address'], msg['request']['user_uuid'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'])[0]
 
-            status = "granted" if access is True else "rejected"
+                    status = "granted" if access is True else "rejected"
 
-            self.publish_message(message.channel, {"access": status, "channel": msg['channel'], "request": msg['request']})
-            self.pd.access_log(msg['request']['user_uuid'], msg['channel'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'], status)
+                    self.publish_message(message.channel, {"access": status, "channel": msg['channel'], "request": msg['request']})
+                    self.pd.access_log(msg['request']['user_uuid'], msg['channel'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'], status)
 
-            print("PolicyServer: Access on {} by {} logged as {}".format(msg['channel'], msg['request']['user_uuid'], status))
+                    print("PolicyServer: Access on {} by {} logged as {}".format(msg['channel'], msg['request']['user_uuid'], status))
 
-        else:
-            print("Not received expected parameters.")
-            # Receiver hasn't provided full information
-            # Maybe make this can be negligible for some parameters like module_name, as device_id should be enough
-            pass
+                else:
+                    print("Not received expected parameters.")
+                    # Receiver hasn't provided full information
+                    # Maybe make this can be negligible for some parameters like module_name, as device_id should be enough
+                    pass
 
-
-        pass  # Handle new message stored in message.message
+            else:
+                self.publish_message(message.channel, {"access": "granted", "channel": msg['channel'], "request": msg['request']})
 
     def publish_message(self, channel, message):
         response = json.loads(json.dumps(message))
-        print(channel)
         self.pubnub.publish().channel(channel).message(response).async(my_publish_callback)
 
 # if __name__ == "__main__":

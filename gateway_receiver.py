@@ -25,6 +25,7 @@ from importlib import util
 
 from helpers import module_methods, default_args, list_modules as lm
 from modules import *
+from modules import help
 import gateway_database
 import policy_server
 
