@@ -61,7 +61,7 @@ class MySubscribeCallback(SubscribeCallback):
         self.gd = gateway_database.GatewayDatabase(host, user, password, database)
 
         print("GatewayAuth: Starting the receiver..")
-        self.gr = gateway_receiver.Receiver() # We could pass params however we want GR to be independent.
+        self.gr = gateway_receiver.Receiver(password, host, user, database) # We could pass params however we want GR to be independent.
 
         self.receiver_auth_key = self.gd.receivers_key()
 

@@ -44,13 +44,13 @@ def my_publish_callback(envelope, status):
         pass
 
 class Receiver(SubscribeCallback):
-    def __init__(self):
+    def __init__(self, password = None, host = None, user = None, database = None):
         # TODO: Perhaps do default params for GR so if it's being called by Auth then it doesn't create new instances/saves resources, however if called independent, parameters would be used.. + Idea: Second constructor?
 
-        password = input("Database password: ")
-        host = 'ephesus.cs.cf.ac.uk'
-        user = 'c1312433'
-        database = 'c1312433'
+        password = input("Database password: ") if password is None else password
+        host = 'ephesus.cs.cf.ac.uk' if host is None else host
+        user = 'c1312433' if user is None else user
+        database = 'c1312433' if database is None else database
 
         print("GatewayReceiver: Starting gateway database..")
         gd = gateway_database.GatewayDatabase(host, user, password, database)
@@ -75,7 +75,7 @@ class Receiver(SubscribeCallback):
         self.pubnub.grant().channels("policy").auth_keys([pnconfig.auth_key, gd.policy_key()]).read(True).write(True).manage(True).ttl(0).sync()
         self.subscribe_channel("policy")
 
-        ps = policy_server.PolicyServer()
+        ps = policy_server.PolicyServer(password)
         # TODO: On init need to subscribe to all channels required to recover from crashes.
 
     def subscribe_channel(self, channel_name):
@@ -204,5 +204,3 @@ class Receiver(SubscribeCallback):
 
 # if __name__ == "__main__":
 #     receiver = Receiver()
-#     receiver.subscribe_channel('NO40ACE6I6', 'V3SIPF92JQ')
-    # TTL needs to be 0

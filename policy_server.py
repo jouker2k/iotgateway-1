@@ -19,7 +19,7 @@ def my_publish_callback(envelope, status):
 
 class PolicyServer(SubscribeCallback):
 
-    def __init__(self):
+    def __init__(self, password):
         self.pnconfig = PNConfiguration()
         self.pnconfig.uuid = 'GP'
         self.pnconfig.subscribe_key = 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579'
@@ -35,7 +35,7 @@ class PolicyServer(SubscribeCallback):
         self.pubnub.subscribe().channels('policy').execute()
 
         # REVIEW: This needs to be done automatically via PolicyDatabase (w/o constructor params) + done via fetching credentials remotely or typed
-        self.pd = policy_database.PolicyDatabase("ephesus.cs.cf.ac.uk", "c1312433", "berlin", "c1312433")
+        self.pd = policy_database.PolicyDatabase("ephesus.cs.cf.ac.uk", "c1312433", password, "c1312433")
 
     def presence(self, pubnub, presence):
 
