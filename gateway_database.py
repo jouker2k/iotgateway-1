@@ -1,6 +1,4 @@
 import pymysql
-import pandas
-
 
 class GatewayDatabase(object):
     def __init__(self, host, user, password, database):
