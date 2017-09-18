@@ -94,7 +94,7 @@ class Receiver(SubscribeCallback):
     def status(self, pubnub, status):
         if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
             print('GatewayReceiver: Unexpectedly disconnected.')
-            pubnub.publish().channel('gateway_auth').message({"Global_Message":"GatewayReceiver: Unexpectedly disconnected.}).async(my_publish_callback)
+            pubnub.publish().channel('gateway_auth').message({"Global_Message":"GatewayReceiver: Unexpectedly disconnected."}).async(my_publish_callback)
 
         elif status.category == PNStatusCategory.PNConnectedCategory:
             print('GatewayReceiver: Connected.')
