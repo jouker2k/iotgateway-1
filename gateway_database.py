@@ -1,8 +1,13 @@
 import pymysql
+import pandas
 
 
 class GatewayDatabase(object):
     def __init__(self, host, user, password, database):
+        self.host = host
+        self.user = user
+        self.password = password
+        self.database = database
 
         try:
             self.connection = pymysql.connect(host, user, password, database)
@@ -75,18 +80,29 @@ class GatewayDatabase(object):
 
         print("GatewayDatabase: New subscription added to channel {} containing user {}".format(channel_name, uuid))
 
-# if __name__ == "__main__":
+    def get_channels(self):
+        cursor = self.connection.cursor()
+        query = cursor.execute("SELECT channel FROM gateway_subscriptions")
+
+        rows = cursor.fetchall()
+        subscription_channels = [i[0] for i in rows]
+
+        return subscription_channels
+
+if __name__ == "__main__":
 #
-#     password = input("Database password: ")
-#     # database = input("Database name: ")
-#
-#     # temp
-#     host = 'ephesus.cs.cf.ac.uk'
-#     user = 'c1312433'
-#
-#     database = 'c1312433'
-#
-#     gd = GatewayDatabase(host, user, password, database)
+    password = input("Database password: ")
+    # database = input("Database name: ")
+
+    # temp
+    host = 'ephesus.cs.cf.ac.uk'
+    user = 'c1312433'
+
+    database = 'c1312433'
+
+    gd = GatewayDatabase(host, user, password, database)
+    gd.get_channels()
+
 #
 #     # temp
 #     print("Receivers key: {}".format(gd.receivers_key()))

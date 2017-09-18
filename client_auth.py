@@ -19,18 +19,15 @@ def my_publish_callback(envelope, status):
 class Client(SubscribeCallback):
 
     def __init__(self, uuid):
-        self.authed = False
+        self.authed = self.global_channel = False
         self.pnconfig = PNConfiguration()
-        self.pnconfig.uuid = uuid
         self.pnconfig.publish_key = 'pub-c-85d5e576-5d92-48b0-af83-b47a7f21739f'
         self.pnconfig.subscribe_key = 'sub-c-12c2dd92-860f-11e7-8979-5e3a640e5579'
         self.pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
         self.pnconfig.ssl = True
-        self.pnconfig.subscribe_timeout = 9^99
-        self.pnconfig.connect_timeout = 9^99
-        self.pnconfig.non_subscribe_timeout = 9^99
+        self.pnconfig.subscribe_timeout = self.pnconfig.connect_timeout = self.pnconfig.non_subscribe_timeout = 9^99
 
-        self.pnconfig.auth_key = self.chanenl = ""
+        self.pnconfig.uuid = uuid
 
         self.pubnub = PubNub(self.pnconfig)
         self.pubnub.add_listener(self)
@@ -59,15 +56,12 @@ class Client(SubscribeCallback):
         jsonmsg = {"user_uuid": self.pnconfig.uuid, "enquiry": enquiry_bool, "module_name": module_name, "requested_function": requested_function, "parameters": parameters}
         return(self.publish_request(channel, jsonmsg))
 
-    # def status(self, pubnub, status):
-    #     if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
-    #         print("Client: Unexpectedly disconnected.")
-    #
-    #     elif status.category == PNStatusCategory.PNConnectedCategory:
-    #         print("Client: Connected.")
-    #
-    #     elif status.category == PNStatusCategory.PNReconnectedCategory:
-    #         print("Client: Reconnected.")
+    def status(self, pubnub, status):
+        if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
+            print("Client: Unexpectedly disconnected.")
+
+        elif status.category == PNStatusCategory.PNReconnectedCategory:
+            print("Client: Reconnected.")
 
     def message(self, pubnub, message):
         if not self.authed:
@@ -83,10 +77,11 @@ class Client(SubscribeCallback):
 
                 self.channel = message.message['channel']
                 self.pnconfig.auth_key = message.message['auth_key']
+                self.global_channel = message.message['global_channel']
                 self.authed = True
 
-                print("Client Connecting to private channel {}..".format(self.channel))
-                self.pubnub.subscribe().channels(self.channel).execute()
+                print("Client Connecting to private channel '{}' and global channel '{}'..".format(self.channel, self.global_channel))
+                self.pubnub.subscribe().channels([self.channel, self.global_channel]).execute()
 
                 show_modules = input("Show modules available (Y/n)? ")
                 if show_modules is "Y":
@@ -117,5 +112,8 @@ class Client(SubscribeCallback):
             print("response retrieved: " + str(message.message))
             self.enquire_modules(self.channel)
 
+        if message.channel == self.global_channel:
+            print(message.message)
+
 if __name__ == "__main__":
-    client = Client("wre9w_009i_o__2--19r900093284823849")
+    client = Client("riieiw1934w9291o3992skeeooo1et1-")

@@ -74,36 +74,21 @@ class PolicyDatabase(object):
         t = datetime.datetime.now()
         delta = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
 
-        print(delta)
-        print(start_time, end_time)
-
         if delta > start_time and delta < end_time:
-            print("Time within range")
+            print("PolicyDatabase: Time within range for {} function on {} module requested by user: {}".format(required_function, module_name, uuid))
             return [True, "time_granted"]
 
         else:
-            print("Time not within range")
+            print("PolicyDatabase: Time not within range {} function on {} module requested by user: {}".format(required_function, module_name, uuid))
             return [False, "time_rejected"]
 
-        print(delta > start_time)
-        #print(now > start_time)
-
-        #print(start_time, end_time)
-
-if __name__ == "__main__":
-    # TODO: Will accept input as this:
-    # host = input("Host to connect to: ")
-    # user - input("User to login as: ")
-    password = input("Database password: ")
-    # database = input("Database name: ")
-
-    # temp
-    host = 'ephesus.cs.cf.ac.uk'
-    user = 'c1312433'
-
-    database = 'c1312433'
-
-    #pd = PolicyDatabase(host, user, password, database)
+# if __name__ == "__main__":
+#     password = input("Database password: ")
+#     host = 'ephesus.cs.cf.ac.uk'
+#     user = 'c1312433'
+#     database = 'c1312433'
+#
+#     pd = PolicyDatabase(host, user, password, database)
 
     # temp
     #pd.access_device('test', '00:17:88:6c:d6:d3', 'client_test','philapi', 'light_switch', [False, 1])

@@ -44,41 +44,40 @@ def my_publish_callback(envelope, status):
         pass
 
 class Receiver(SubscribeCallback):
-    def __init__(self, password = None, host = None, user = None, database = None):
-        # TODO: Perhaps do default params for GR so if it's being called by Auth then it doesn't create new instances/saves resources, however if called independent, parameters would be used.. + Idea: Second constructor?
+    def __init__(self, gdatabase = None):
+        self.gdatabase = gdatabase
 
-        password = input("Database password: ") if password is None else password
-        host = 'ephesus.cs.cf.ac.uk' if host is None else host
-        user = 'c1312433' if user is None else user
-        database = 'c1312433' if database is None else database
-
-        print("GatewayReceiver: Starting gateway database..")
-        gd = gateway_database.GatewayDatabase(host, user, password, database)
+        if gdatabase is None:
+            password = input("Database password: ")
+            self.gdatabase = gateway_database.GatewayDatabase(host = 'ephesus.cs.cf.ac.uk', user = 'c1312433', password = password, database = 'c1312433')
 
         pnconfig = PNConfiguration()
+        pnconfig.subscribe_key = self.gdatabase.sub_key()
+        pnconfig.publish_key = self.gdatabase.pub_key()
+        pnconfig.secret_key = self.gdatabase.sec_key()
 
-
-        pnconfig.subscribe_key = gd.sub_key()
-        pnconfig.publish_key = gd.pub_key()
-        pnconfig.auth_key =  gd.receivers_key()
-        pnconfig.secret_key = gd.sec_key()
-
-        pnconfig.uuid = 'GR'
         pnconfig.ssl = True
         pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
         pnconfig.subscribe_timeout = pnconfig.connect_timeout = pnconfig.non_subscribe_timeout = 9^99
 
+        self.uuid = 'GR'
+        pnconfig.uuid = self.uuid
         self.pubnub = PubNub(pnconfig)
         self.pubnub.add_listener(self)
 
-        print("GatewayReceiver: Subscribing to the Policy server..")
-        self.pubnub.grant().channels("policy").auth_keys([pnconfig.auth_key, gd.policy_key()]).read(True).write(True).manage(True).ttl(0).sync()
-        self.subscribe_channel("policy")
+        print("Rebuilding subscriptions..")
+        subscriptions = self.gdatabase.get_channels()
+        if subscriptions:
+            self.subscribe_channels(subscriptions)
 
-        ps = policy_server.PolicyServer(password)
-        # TODO: On init need to subscribe to all channels required to recover from crashes.
+        print("GatewayReceiver: Subscribing to the Policy server and Gateway global feed..")
+        self.pubnub.grant().channels(["policy"]).auth_keys([self.gdatabase.receivers_key(), self.gdatabase.policy_key()]).read(True).write(True).manage(True).ttl(0).sync()
+        self.pubnub.grant().channels(["gateway_global"]).read(True).write(True).manage(True).sync()
+        self.subscribe_channels(["policy", "gateway_global"])
 
-    def subscribe_channel(self, channel_name):
+        ps = policy_server.PolicyServer(self.gdatabase)
+
+    def subscribe_channels(self, channel_name):
         print("GatewayReceiver: Subscribed to {}".format(channel_name))
         self.pubnub.subscribe().channels(channel_name).with_presence().execute()
 
@@ -88,17 +87,22 @@ class Receiver(SubscribeCallback):
         self.pubnub.publish().channel(channel).message(msg_json).async(my_publish_callback)
 
     def presence(self, pubnub, presence):
-        #print(presence.channel)
-        pass  # handle incoming presence data
+        if presence.event == 'leave' and presence.uuid != self.uuid:
+            print("GatewayReceiver: {} event on channel {} by user {}, unsubscribing.".format(presence.event.title(), presence.channel, presence.uuid))
+            pubnub.unsubscribe().channels(presence.channel).execute()
 
     def status(self, pubnub, status):
         if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
             print('GatewayReceiver: Unexpectedly disconnected.')
+            pubnub.publish().channel('gateway_auth').message({"Global_Message":"GatewayReceiver: Unexpectedly disconnected.}).async(my_publish_callback)
 
         elif status.category == PNStatusCategory.PNConnectedCategory:
             print('GatewayReceiver: Connected.')
 
         elif status.category == PNStatusCategory.PNReconnectedCategory:
+            print("Rebuilding subscriptions..")
+            subscriptions = self.gdatabase.get_channels()
+            self.pubnub.subscribe().channels(subscriptions).with_presence().execute()
             print('GatewayReceiver: Reconnected.')
 
     def delete_defaults(self, function, array):
@@ -202,5 +206,5 @@ class Receiver(SubscribeCallback):
                     self.publish_request(msg['channel'], {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": "rejected"})
 
 
-# if __name__ == "__main__":
-#     receiver = Receiver()
+if __name__ == "__main__":
+    receiver = Receiver()
