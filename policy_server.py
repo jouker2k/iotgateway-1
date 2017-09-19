@@ -7,6 +7,9 @@ from pubnub.callbacks import SubscribeCallback
 from pubnub.pubnub import PubNub
 from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
 
+import sys
+from helpers import module_methods
+
 def my_publish_callback(envelope, status):
     # Check whether request successfully completed or not
     if not status.is_error():
@@ -65,7 +68,15 @@ class PolicyServer(SubscribeCallback):
     def message(self, pubnub, message):
         msg = message.message
 
-        if 'access' not in msg:
+        if 'policy_admin' in msg:
+            print("test?")
+            method_to_call = getattr(self.pd, msg['policy_admin']['requested_function'])
+            result = method_to_call(*msg['policy_admin']['parameters'])
+
+            self.publish_message(message.channel, {"policy_admin_result": str(result)})
+
+
+        elif 'access' not in msg and 'policy_admin' not in msg:
             if msg['request']['module_name'] != 'help':
                 if 'user_uuid' in msg['request'] and 'mac_address' in msg:
 
@@ -87,9 +98,17 @@ class PolicyServer(SubscribeCallback):
             else:
                 self.publish_message(message.channel, {"access": "granted", "channel": msg['channel'], "request": msg['request']})
 
+        # {"policy_admin": {"auth_key": key, "requested_function": somefunc, "parameters": [some parameters]}}
+
     def publish_message(self, channel, message):
         response = json.loads(json.dumps(message))
         self.pubnub.publish().channel(channel).message(response).async(my_publish_callback)
 
-# if __name__ == "__main__":
-#     ps = PolicyServer()
+if __name__ == "__main__":
+    #temp
+    import gateway_database
+    password = input("Database password: ")
+    gdatabase = gateway_database.GatewayDatabase(host = 'ephesus.cs.cf.ac.uk', user = 'c1312433', password = password, database = 'c1312433')
+
+    print(getattr(gdatabase, 'policy_key'))
+    ps = PolicyServer(gdatabase)
