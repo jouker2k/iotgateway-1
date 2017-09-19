@@ -82,7 +82,6 @@ class Receiver(SubscribeCallback):
         self.pubnub.subscribe().channels(channel_name).with_presence().execute()
 
     def publish_request(self, channel, msg):
-        # REVIEW: May need to format py to json
         msg_json = json.loads(json.dumps(msg))
         self.pubnub.publish().channel(channel).message(msg_json).async(my_publish_callback)
 
@@ -90,6 +89,7 @@ class Receiver(SubscribeCallback):
         if presence.event == 'leave' and presence.uuid != self.uuid:
             print("GatewayReceiver: {} event on channel {} by user {}, unsubscribing.".format(presence.event.title(), presence.channel, presence.uuid))
             pubnub.unsubscribe().channels(presence.channel).execute()
+            self.gdatabase.gateway_subscriptions_remove(presence.channel, presence.uuid)
 
     def status(self, pubnub, status):
         if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
@@ -158,23 +158,15 @@ class Receiver(SubscribeCallback):
                                 method_requested = getattr(module, msg['requested_function'])
                                 method_args = inspect.getargspec(method_requested)[0]
 
-                                if not msg['parameters'] and method_args is not None: # needs params but not provided
-                                    print('{}: User did not provide parameters that the method requires!'.format(message.channel))
-
-                                    result = {'result': method_requested()}
-                                    self.publish_request(message.channel, result)
-
-                                elif msg['parameters'] and method_args is not None: # params provided and needed
-
+                                self.delete_defaults(method_requested, method_args)
+                                if isinstance(msg['parameters'], list) and len(msg['parameters']) == len(method_args):
                                     get_mac = getattr(module, 'get_mac')
                                     mac_address = get_mac()
 
                                     self.publish_request("policy", {"channel": message.channel, "mac_address": mac_address, "request": msg})
 
-                                    # REVIEW: Useful later when granted access
-                                    #result = method_requested(*msg['parameters'])
-                                    #jsonres = {"result": str(result)}
-                                    #self.publish_request(message.channel, jsonres)
+                                else:
+                                    self.publish_request(message.channel, {"error": "Your request's parameters must be an array and match required parameters of the method."})
 
 
                         else:

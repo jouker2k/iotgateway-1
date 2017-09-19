@@ -9,7 +9,6 @@ from pubnub.pubnub import PubNub
 
 # TODO: User UUID currently has to be sent by Client, perhaps DB can auto-check this by checking which channel belongs to which user.
 
-
 def my_publish_callback(envelope, status):
     if not status.is_error():
         print("Client: Message successfully sent to gateway.")
@@ -103,12 +102,13 @@ class Client(SubscribeCallback):
                     print("In corresponding order, please enter the parameters in an array below, leave blank if none:")
                     params = input()
 
-                    self.device_request(self.channel, False, message.message['enquiry']['module_name'], method_chosen, ast.literal_eval(params))
-
+                    if params:
+                        self.device_request(self.channel, False, message.message['enquiry']['module_name'], method_chosen, ast.literal_eval(params))
+                        pass
                 except:
                     pass
 
-        elif 'result' in message.message:
+        elif 'result' or 'error' in message.message:
             print("response retrieved: " + str(message.message))
             self.enquire_modules(self.channel)
 
@@ -116,4 +116,4 @@ class Client(SubscribeCallback):
             print(message.message)
 
 if __name__ == "__main__":
-    client = Client("platypus_12")
+    client = Client("platypus_17")
