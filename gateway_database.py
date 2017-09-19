@@ -66,7 +66,7 @@ class GatewayDatabase(object):
 
         return rows[0][0]
 
-    def auth_blacklist(self, channel_name, uuid):
+    def auth_blacklist(self, channel_name, uuid): # TODO: Move directly to Policy server?
         cursor = self.connection.cursor()
         cursor.execute("INSERT INTO auth_blacklisted(channel, user_uuid) VALUES('%s','%s');" % (channel_name, uuid))
 
@@ -77,6 +77,12 @@ class GatewayDatabase(object):
         cursor.execute("INSERT INTO gateway_subscriptions(channel, user_uuid) VALUES('%s','%s');" % (channel_name, uuid))
 
         print("GatewayDatabase: New subscription added to channel {} containing user {}".format(channel_name, uuid))
+
+    def gateway_subscriptions_remove(self, channel_name, uuid):
+        cursor = self.connection.cursor()
+        cursor.execute("DELETE FROM gateway_subscriptions WHERE channel = '%s' AND user_uuid = '%s'" % (channel_name, uuid))
+
+        print("GatewayDatabase: Subscription on channel {} containing user {} deleted.".format(channel_name, uuid))
 
     def get_channels(self):
         cursor = self.connection.cursor()
