@@ -93,24 +93,16 @@ class GatewayDatabase(object):
 
         return subscription_channels
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 #
-    password = input("Database password: ")
-    # database = input("Database name: ")
-
-    # temp
-    host = 'ephesus.cs.cf.ac.uk'
-    user = 'c1312433'
-
-    database = 'c1312433'
-
-    gd = GatewayDatabase(host, user, password, database)
-    gd.get_channels()
-
+#     password = input("Database password: ")
+#     # database = input("Database name: ")
 #
 #     # temp
-#     print("Receivers key: {}".format(gd.receivers_key()))
-#     print("Policy key: {}".format(gd.policy_key()))
-#     print("Secret key: {}".format(gd.sec_key()))
-#     print("Sub key: {}".format(gd.sub_key()))
-#     print("Pub key: {}".format(gd.pub_key()))
+#     host = 'ephesus.cs.cf.ac.uk'
+#     user = 'c1312433'
+#
+#     database = 'c1312433'
+#
+#     gd = GatewayDatabase(host, user, password, database)
+#     gd.get_channels()

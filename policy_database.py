@@ -1,4 +1,3 @@
-# pip install PyMySQLs
 import pymysql
 import datetime
 from datetime import timedelta
@@ -78,7 +77,7 @@ class PolicyDatabase(object):
         valid_uuid_for_channel = cursor.fetchall()
 
         if not valid_uuid_for_channel:
-            print("The UUID {} is not a valid subscriber for the channel {}, blacklisting...".format(uuid, channel)) # TODO: blacklisting
+            print("The UUID {} is not a valid subscriber for the channel {}, blacklisting...".format(uuid, channel))
             self.device_access_blacklist(module_name, requested_function, uuid)
             return [False, "invalid_uuid"]
 
@@ -123,16 +122,16 @@ class PolicyDatabase(object):
             print("PolicyDatabase: Time not within range {} function on {} module requested by user: {}".format(requested_function, module_name, uuid))
             return [access, "time_rejected"]
 
-if __name__ == "__main__":
-    password = input("Database password: ")
-    host = 'ephesus.cs.cf.ac.uk'
-    user = 'c1312433'
-    database = 'c1312433'
-
-    pd = PolicyDatabase(host, user, password, database)
-    # temp riieiw934w9291o3992sk
-    pd.access_device('ALF0OCK6IC', '00:17:88:6c:d6:d3', 'platypus_0', 'philapi', 'light_switch', [False, 1])
-    # pd.undo_device_blacklist('test_user_uuid_2')
-    # pd.set_policy('philapi', '00:17:88:6c:d6:d3', 'show_hues', '', '06:00', '05:59')
-
-    #pd.modify_policy(1, '00:23:00', '00:03:00')
+# if __name__ == "__main__":
+#     password = input("Database password: ")
+#     host = 'ephesus.cs.cf.ac.uk'
+#     user = 'c1312433'
+#     database = 'c1312433'
+#
+#     pd = PolicyDatabase(host, user, password, database)
+#     # temp riieiw934w9291o3992sk
+#     pd.access_device('ALF0OCK6IC', '00:17:88:6c:d6:d3', 'platypus_0', 'philapi', 'light_switch', [False, 1])
+#     # pd.undo_device_blacklist('test_user_uuid_2')
+#     # pd.set_policy('philapi', '00:17:88:6c:d6:d3', 'show_hues', '', '06:00', '05:59')
+#
+#     #pd.modify_policy(1, '00:23:00', '00:03:00')

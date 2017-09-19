@@ -7,8 +7,6 @@ from pubnub.enums import PNStatusCategory
 from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
 from pubnub.pubnub import PubNub
 
-# TODO: User UUID currently has to be sent by Client, perhaps DB can auto-check this by checking which channel belongs to which user.
-
 def my_publish_callback(envelope, status):
     if not status.is_error():
         print("Client: Message successfully sent to gateway.")
@@ -116,4 +114,4 @@ class Client(SubscribeCallback):
             print(message.message)
 
 if __name__ == "__main__":
-    client = Client("platypus_17")
+    client = Client("platypus_18")

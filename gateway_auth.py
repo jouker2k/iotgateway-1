@@ -3,13 +3,6 @@ __author__ = "sgript"
 
 Authentication code for clients connecting to gateway via pubnub
 '''
-# TODO: Implement some channel for global announcements to all devices
-# .
-# .
-# TODO: Clean up code.
-
-# # #
-
 import string
 import random
 import json

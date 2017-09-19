@@ -11,14 +11,10 @@ import sys
 from helpers import module_methods
 
 def my_publish_callback(envelope, status):
-    # Check whether request successfully completed or not
     if not status.is_error():
-        pass  # Message successfully published to specified channel.
+        pass
     else:
-        pass  # Handle message publish error. Check 'category' property to find out possible issue
-        # because of which request did fail.
-        # Request can be resent using: [status retry];
-
+        pass
 
 class PolicyServer(SubscribeCallback):
 
@@ -37,7 +33,6 @@ class PolicyServer(SubscribeCallback):
         self.pubnub.add_listener(self)
         self.pubnub.subscribe().channels('policy').execute()
 
-        # REVIEW: This needs to be done automatically via PolicyDatabase (w/o constructor params) + done via fetching credentials remotely or typed
         self.pd = policy_database.PolicyDatabase(gdatabase.host, gdatabase.user, gdatabase.password, gdatabase.database)
 
     def presence(self, pubnub, presence):
@@ -98,17 +93,15 @@ class PolicyServer(SubscribeCallback):
             else:
                 self.publish_message(message.channel, {"access": "granted", "channel": msg['channel'], "request": msg['request']})
 
-        # {"policy_admin": {"auth_key": key, "requested_function": somefunc, "parameters": [some parameters]}}
-
     def publish_message(self, channel, message):
         response = json.loads(json.dumps(message))
         self.pubnub.publish().channel(channel).message(response).async(my_publish_callback)
 
-if __name__ == "__main__":
-    #temp
-    import gateway_database
-    password = input("Database password: ")
-    gdatabase = gateway_database.GatewayDatabase(host = 'ephesus.cs.cf.ac.uk', user = 'c1312433', password = password, database = 'c1312433')
-
-    print(getattr(gdatabase, 'policy_key'))
-    ps = PolicyServer(gdatabase)
+# if __name__ == "__main__":
+#     # temp - testing purposes only
+#     # import gateway_database
+#     # password = input("Database password: ")
+#     # gdatabase = gateway_database.GatewayDatabase(host = 'ephesus.cs.cf.ac.uk', user = 'c1312433', password = password, database = 'c1312433')
+#     #
+#     # print(getattr(gdatabase, 'policy_key'))
+#     # ps = PolicyServer(gdatabase)

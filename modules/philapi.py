@@ -3,10 +3,9 @@ import json
 # from .exceptions import *
 # from .exceptions import exception
 
-# TODO: HANDLE RESPONSES TO GIVE TO CLIENT (ERROR CODES)
 # TODO: For Philips API calls do better error returns, such as passing on those returned via the API.
 
-# REVIEW TEMPORARY PLACEMENT OF KEY
+# TODO PLACEMENT OF KEY
 bulb_key = "PEuzGOSH9rFqcjqDOCREmpeBpdT-kc-zbFY3tyXh"
 
 class ButtonNotPressed(Exception):
@@ -54,7 +53,6 @@ def bridge_auth():
     return result
 
 def show_hues(bridge_key = bulb_key):
-    # TODO: REPLACE HARDCODED AUTH KEY WITH RETRIEVED ONE --> bridge_auth()
     req = requests.get('http://{0}/api/{1}/lights'.format(bridge_ip(), bridge_key))
 
     # like in bridge_auth_key func will need to dump the json using dumps() then use loads()

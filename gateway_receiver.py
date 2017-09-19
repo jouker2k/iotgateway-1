@@ -5,17 +5,15 @@ __author__ = "sgript"
 Expected request format:
 {
 'enquiry': '',               # Boolean, if used all rest parameters are unneeded, module_name can be optionally checked.
-'module_name': '',           # Use this to find applicable methods?
-'id': '',                    # If applicable, i.e. Philips Hue
-'device_type': '',           # Will define fixed categories later.
-'requested_function': '',    # NOTE: See ast module ***
+'module_name': '',
+'requested_function': '',
 'parameters': ''
 }
 
-# NOTE: When just listing devices all parameters can be
+Policy response-back format:
+{'access': 'rejected', 'request': {'user_uuid': 'client_test', 'enquiry': False, 'module_name': 'philapi', 'requested_function': 'light_switch', 'parameters': [False, 1]}}
 
-TODO: This is to be handled by a single-service function (likely messages) branching to applicable functions.
-
+All newly added modules go into /modules/ and are picked up by gateway.
 '''
 
 import sys
@@ -116,7 +114,6 @@ class Receiver(SubscribeCallback):
         print(msg)
         if message.channel != "policy":
             if 'enquiry' in msg and msg['enquiry'] is True:
-                # TODO: Still need something to list available modules.
                 if 'module_name' in msg:
                     module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
 
@@ -181,7 +178,6 @@ class Receiver(SubscribeCallback):
             #         self.publish_request(message.channel, error_msg)
 
         elif message.channel == "policy":
-            # {'access': 'rejected', 'request': {'user_uuid': 'client_test', 'enquiry': False, 'module_name': 'philapi', 'requested_function': 'light_switch', 'parameters': [False, 1]}}
 
             if "access" in msg:
 
