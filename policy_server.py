@@ -1,4 +1,3 @@
-
 import json
 import policy_database
 
@@ -64,14 +63,22 @@ class PolicyServer(SubscribeCallback):
         msg = message.message
 
         if 'policy_admin' in msg:
-            print("test?")
             method_to_call = getattr(self.pd, msg['policy_admin']['requested_function'])
             result = method_to_call(*msg['policy_admin']['parameters'])
 
-            self.publish_message(message.channel, {"policy_admin_result": str(result)})
+            if method_to_call is not "canary_entry":
+                self.publish_message(message.channel, {"policy_admin_result": str(result)})
+            else:
+                # {"policy_admin": {"requested_function": "canary_entry", "parameters": ["testfile", "B"], "pastebin": "url"}}
+                # send this response to gateway
+                # gateway parses pastebin, takes content
+                # creates file with this content
+                # puts into the modules folder
+                self.publish_message('policy', {"canary": msg}) # at this point pass to receiver and let it handle the physical creation of the file...
 
+                print("WANTS TO CREATE CANARY")
 
-        elif 'access' not in msg and 'policy_admin' not in msg:
+        elif 'access' in msg: #if msg['access']:
             if msg['request']['module_name'] != 'help':
                 if 'user_uuid' in msg['request'] and 'mac_address' in msg:
 
@@ -97,11 +104,11 @@ class PolicyServer(SubscribeCallback):
         response = json.loads(json.dumps(message))
         self.pubnub.publish().channel(channel).message(response).async(my_publish_callback)
 
-# if __name__ == "__main__":
-#     # temp - testing purposes only
-#     # import gateway_database
-#     # password = input("Database password: ")
-#     # gdatabase = gateway_database.GatewayDatabase(host = 'ephesus.cs.cf.ac.uk', user = 'c1312433', password = password, database = 'c1312433')
-#     #
-#     # print(getattr(gdatabase, 'policy_key'))
-#     # ps = PolicyServer(gdatabase)
+if __name__ == "__main__":
+    # temp - testing purposes only
+    import gateway_database
+    password = input("Database password: ")
+    gdatabase = gateway_database.GatewayDatabase(host = 'ephesus.cs.cf.ac.uk', user = 'c1312433', password = password, database = 'c1312433')
+
+    print(getattr(gdatabase, 'policy_key'))
+    ps = PolicyServer(gdatabase)

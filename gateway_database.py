@@ -35,7 +35,6 @@ class GatewayDatabase(object):
 
         return rows[0][0]
 
-
     def sec_key(self):
         cursor = self.connection.cursor()
         row = cursor.execute("SELECT sec_key FROM gateway_keys")

@@ -2,7 +2,6 @@ import pymysql
 import datetime
 from datetime import timedelta
 import time
-from gateway_database import GatewayDatabase
 
 '''
 DB Columns?
@@ -14,6 +13,9 @@ DB Columns?
 - blacklisted_user_uuid
 '''
 
+# TODO Perhaps allow creating Canary from here, so we make canary_entry() from here (see GatewayDatabase) then it sends msg to receiver to fulfil the canary?
+# Perhaps even send python code in a pastebin link to parse and save as a file – fully remote.
+
 class PolicyDatabase(object):
     def __init__(self, host, user, password, database):
         try:
@@ -23,6 +25,18 @@ class PolicyDatabase(object):
         except _mysql.Error as e:
             print("Error {}: {}".format(e.args[0], e.args[1]))
             sys.exit(1)
+
+    def get_admin_emails(self):
+        cursor = self.connection.cursor()
+        row = cursor.execute("SELECT * FROM administrator_emails")
+        rows = cursor.fetchall()
+        return rows
+
+    def get_email_config(self):
+        cursor = self.connection.cursor()
+        row = cursor.execute("SELECT * FROM email_config")
+        rows = cursor.fetchall()
+        return rows
 
     def get_policy(self):
         cursor = self.connection.cursor()
@@ -68,6 +82,22 @@ class PolicyDatabase(object):
         date_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
         cursor.execute("INSERT INTO access_log(date_time, user_uuid, channel_name, module_name, method_name, parameters, status) VALUES('%s','%s','%s','%s','%s','%s','%s');" % (date_time, user_uuid, channel_name, module_name, method_name, parameters, status))
+
+    def is_canary(self, canary_name):
+        cursor = self.connection.cursor()
+        row = cursor.execute("SELECT canary_function FROM canary_functions WHERE canary_function = '%s';" % (canary_name))
+        canary_exists = cursor.fetchall()
+
+        if canary_exists:
+            return True
+        else:
+            return False
+
+    def canary_entry(self, file_name, canary_level, uuid = None):
+        cursor = self.connection.cursor()
+        cursor.execute("INSERT INTO canary_functions(canary_function, canary_level, uuid) VALUES('%s','%s', '%s');" % (file_name, canary_level, uuid))
+
+        print("GatewayDatabase: Canary file {} created at security level {}.".format(file_name, canary_level))
 
     def access_device(self, channel, mac_address, uuid, module_name, requested_function, parameters):
         cursor = self.connection.cursor()
