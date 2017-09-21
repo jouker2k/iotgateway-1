@@ -85,13 +85,13 @@ class PolicyDatabase(object):
 
     def is_canary(self, canary_name):
         cursor = self.connection.cursor()
-        row = cursor.execute("SELECT canary_function FROM canary_functions WHERE canary_function = '%s';" % (canary_name))
+        row = cursor.execute("SELECT DISTINCT canary_function, canary_level FROM canary_functions WHERE canary_function = '%s';" % (canary_name))
         canary_exists = cursor.fetchall()
 
         if canary_exists:
-            return True
+            return [True, canary_exists[0][1]]
         else:
-            return False
+            return [False, ""]
 
     def canary_entry(self, file_name, canary_level, uuid = None):
         cursor = self.connection.cursor()
@@ -105,6 +105,18 @@ class PolicyDatabase(object):
         # Before anything first check if corresponding channel has correct UUID requesting:
         query = cursor.execute("SELECT user_uuid FROM gateway_subscriptions WHERE channel = '%s' and user_uuid = '%s'" % (channel, uuid))
         valid_uuid_for_channel = cursor.fetchall()
+        canary = self.is_canary(module_name)
+        canary_breach_level = canary[1]
+        print(canary)
+        if canary[0]:
+            if canary_breach_level == "A":
+                return [False, "canary_breach:shutdown_now"]
+
+            elif canary_breach_level == "B":
+                return [False, "canary_breach:email_admins_blacklist"]
+
+            elif canary_breach_level == "C":
+                return [False, "canary_breach:email"]
 
         if not valid_uuid_for_channel:
             print("The UUID {} is not a valid subscriber for the channel {}, blacklisting...".format(uuid, channel))
@@ -160,7 +172,8 @@ class PolicyDatabase(object):
 #
 #     pd = PolicyDatabase(host, user, password, database)
 #     # temp riieiw934w9291o3992sk
-#     pd.access_device('ALF0OCK6IC', '00:17:88:6c:d6:d3', 'platypus_0', 'philapi', 'light_switch', [False, 1])
+#     #pd.access_device('ALF0OCK6IC', '00:17:88:6c:d6:d3', 'platypus_0', 'philapi', 'light_switch', [False, 1])
+#     pd.is_canary("file_read")
 #     # pd.undo_device_blacklist('test_user_uuid_2')
 #     # pd.set_policy('philapi', '00:17:88:6c:d6:d3', 'show_hues', '', '06:00', '05:59')
 #

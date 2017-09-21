@@ -31,7 +31,3 @@ class PasteFetcher():
         paste_id = random.choice(pastes)
         final = self.parse_paste(paste_id)
         return final
-
-
-paste = PasteFetcher()
-print(paste.parse_paste())

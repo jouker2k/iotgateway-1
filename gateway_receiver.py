@@ -21,7 +21,7 @@ import json
 import inspect
 from importlib import util
 
-from helpers import module_methods, default_args, list_modules as lm
+from helpers import module_methods, default_args, PasteFetcher, list_modules as lm
 from modules import *
 from modules import help
 import gateway_database
@@ -73,6 +73,7 @@ class Receiver(SubscribeCallback):
         self.pubnub.grant().channels(["gateway_global"]).read(True).write(True).manage(True).sync()
         self.subscribe_channels(["policy", "gateway_global"])
 
+        self.pastebin = PasteFetcher.PasteFetcher()
         ps = policy_server.PolicyServer(self.gdatabase)
 
     def subscribe_channels(self, channel_name):
@@ -84,7 +85,7 @@ class Receiver(SubscribeCallback):
         self.pubnub.publish().channel(channel).message(msg_json).async(my_publish_callback)
 
     def presence(self, pubnub, presence):
-        if presence.event == 'leave' and presence.uuid != self.uuid:
+        if presence.event == 'leave' and presence.uuid != self.uuid and presence.channel != 'policy':
             print("GatewayReceiver: {} event on channel {} by user {}, unsubscribing.".format(presence.event.title(), presence.channel, presence.uuid))
             pubnub.unsubscribe().channels(presence.channel).execute()
             self.gdatabase.gateway_subscriptions_remove(presence.channel, presence.uuid)
@@ -140,34 +141,40 @@ class Receiver(SubscribeCallback):
 
                 # Else if no module name supplied just show list of them available.
                 elif 'module_name' not in msg and msg['enquiry'] is True:
+                    ## TEST
+                    module_list = lm.list_modules()
+                    uuid = self.gdatabase.get_uuid_from_channel(message.channel)
+                    canaries_for_uuid = self.gdatabase.hide_canaries(uuid)
 
-                    self.publish_request(message.channel, {"enquiry": {"modules": lm.list_modules()}})
+                    modules_to_show =  list(set(module_list) - set(canaries_for_uuid)) if len(module_list) > len(canaries_for_uuid) else list(set(canaries_for_uuid) - set(module_list))
+
+                    self.publish_request(message.channel, {"enquiry": {"modules": modules_to_show}})
 
             elif 'enquiry' in msg and msg['enquiry'] is False:
-                    if 'requested_function' in msg:
-                        if 'module_name' in msg:
-                            module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
+                if 'requested_function' in msg:
+                    if 'module_name' in msg:
+                        module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
 
-                            if module_found:
-                                module = sys.modules['modules.' + msg['module_name']]
+                        if module_found:
+                            module = sys.modules['modules.' + msg['module_name']]
 
-                                # Temporarily disabled
-                                method_requested = getattr(module, msg['requested_function'])
-                                method_args = inspect.getargspec(method_requested)[0]
+                            # Temporarily disabled
+                            method_requested = getattr(module, msg['requested_function'])
+                            method_args = inspect.getargspec(method_requested)[0]
 
-                                self.delete_defaults(method_requested, method_args)
-                                if isinstance(msg['parameters'], list) and len(msg['parameters']) == len(method_args):
-                                    get_mac = getattr(module, 'get_mac')
-                                    mac_address = get_mac()
+                            self.delete_defaults(method_requested, method_args)
+                            if isinstance(msg['parameters'], list) and len(msg['parameters']) == len(method_args):
+                                get_mac = getattr(module, 'get_mac')
+                                mac_address = get_mac()
 
-                                    self.publish_request("policy", {"channel": message.channel, "mac_address": mac_address, "request": msg})
+                                self.publish_request("policy", {"channel": message.channel, "mac_address": mac_address, "request": msg})
 
-                                else:
-                                    self.publish_request(message.channel, {"error": "Your request's parameters must be an array and match required parameters of the method."})
+                            else:
+                                self.publish_request(message.channel, {"error": "Your request's parameters must be an array and match required parameters of the method."})
 
 
-                        else:
-                            print("{}: Error no module name supplied even when not an enquiry".format(message.channel)) # tidy up later
+                    else:
+                        print("{}: Error no module name supplied even when not an enquiry".format(message.channel)) # tidy up later
 
             # TODO: Below error works, but can be erroneous, so will need to checked
             # Could be triggered by receiver itself, so just checking for "error" in msg
@@ -192,6 +199,12 @@ class Receiver(SubscribeCallback):
                 else:
                     print("Access on {} rejected, with the request: {}".format(msg['channel'], msg['request']))
                     self.publish_request(msg['channel'], {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": "rejected"})
+
+            if "canary" in msg:
+                paste_id = msg['canary']['pastebin'].split("/")[-1]
+                function_content = self.pastebin.parse_paste(paste_id)
+                with open('./modules/.{}.py'.format(msg['canary']['canary_name']),'w') as f:
+                    f.write(function_content)
 
 
 if __name__ == "__main__":

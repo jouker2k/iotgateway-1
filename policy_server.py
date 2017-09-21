@@ -9,6 +9,8 @@ from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
 import sys
 from helpers import module_methods
 
+import send_email
+
 def my_publish_callback(envelope, status):
     if not status.is_error():
         pass
@@ -33,6 +35,7 @@ class PolicyServer(SubscribeCallback):
         self.pubnub.subscribe().channels('policy').execute()
 
         self.pd = policy_database.PolicyDatabase(gdatabase.host, gdatabase.user, gdatabase.password, gdatabase.database)
+        self.se = send_email.Alert(self.pd)
 
     def presence(self, pubnub, presence):
 
@@ -66,7 +69,8 @@ class PolicyServer(SubscribeCallback):
             method_to_call = getattr(self.pd, msg['policy_admin']['requested_function'])
             result = method_to_call(*msg['policy_admin']['parameters'])
 
-            if method_to_call is not "canary_entry":
+
+            if method_to_call != getattr(self.pd, "canary_entry"):
                 self.publish_message(message.channel, {"policy_admin_result": str(result)})
             else:
                 # {"policy_admin": {"requested_function": "canary_entry", "parameters": ["testfile", "B"], "pastebin": "url"}}
@@ -74,22 +78,37 @@ class PolicyServer(SubscribeCallback):
                 # gateway parses pastebin, takes content
                 # creates file with this content
                 # puts into the modules folder
-                self.publish_message('policy', {"canary": msg}) # at this point pass to receiver and let it handle the physical creation of the file...
 
-                print("WANTS TO CREATE CANARY")
 
-        elif 'access' in msg: #if msg['access']:
+                self.publish_message('policy', {"canary": msg['policy_admin']})
+
+                # TODO: {'canary': {'requested_function': 'file_reading', 'parameters': ['testfile', 'B'], 'pastebin': 'https://pastebin.com/RuYyiMwj'}}
+                # Also note we need to remove the `parameters` key now, unneeded when sent to receiver.
+
+        elif 'access' not in msg: #if msg['access']:
+            print("hi")
             if msg['request']['module_name'] != 'help':
                 if 'user_uuid' in msg['request'] and 'mac_address' in msg:
 
-                    access = self.pd.access_device(msg['channel'], msg['mac_address'], msg['request']['user_uuid'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'])[0]
+                    access = self.pd.access_device(msg['channel'], msg['mac_address'], msg['request']['user_uuid'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'])
 
-                    status = "granted" if access is True else "rejected"
-
+                    status = "granted" if access[0] is True else "rejected: {}".format(access[1])
+                    print("ACCESS IS: {}".format(access[1]))
                     self.publish_message(message.channel, {"access": status, "channel": msg['channel'], "request": msg['request']})
                     self.pd.access_log(msg['request']['user_uuid'], msg['channel'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'], status)
 
                     print("PolicyServer: Access on {} by {} logged as {}".format(msg['channel'], msg['request']['user_uuid'], status))
+
+                    if "canary_breach" in access[1]:
+                        action = access[1].split(":")[1]
+
+                        self.se.to_administrators(msg['request']['module_name'], msg['request']['user_uuid'], msg['channel'])
+
+                        if action == "shutdown_now": # send to receiver to shutdown entire service
+                            self.publish_message(message.channel, {"canary_breach": {"module_name": msg['request']['module_name'], "uuid": msg['request']['user_uuid'], "channel": ['channel'], "action": action}})
+
+                        elif action == "email_admins_blacklist":
+                            self.pd.device_access_blacklist("*", "*", msg['request']['user_uuid'])
 
                 else:
                     print("Not received expected parameters.")

@@ -25,6 +25,26 @@ class GatewayDatabase(object):
 
         return rows[0][0]
 
+    def get_uuid_from_channel(self, channel):
+        cursor = self.connection.cursor()
+        row = cursor.execute("SELECT user_uuid FROM gateway_subscriptions WHERE channel = '%s';" % (channel))
+        rows = cursor.fetchall()
+
+        if rows:
+            return rows[0][0]
+
+    def hide_canaries(self, uuid):
+        cursor = self.connection.cursor()
+        row = cursor.execute("SELECT DISTINCT canary_function FROM canary_functions WHERE uuid != '%s' AND uuid != '%s' AND uuid IS NOT NULL;" % (uuid, None))
+        rows = cursor.fetchall()
+
+        result = []
+        for row in rows:
+            result.append(row[0])
+
+        print(result)
+        return result
+
     def policy_key(self):
         cursor = self.connection.cursor()
         row = cursor.execute("SELECT auth_key_policy FROM gateway_keys")
@@ -104,4 +124,5 @@ class GatewayDatabase(object):
 #     database = 'c1312433'
 #
 #     gd = GatewayDatabase(host, user, password, database)
-#     gd.get_channels()
+#     print(gd.hide_canaries('platypus_0'))
+# #     gd.get_channels()
