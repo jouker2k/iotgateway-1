@@ -6,7 +6,7 @@ from pubnub.callbacks import SubscribeCallback
 from pubnub.pubnub import PubNub
 from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
 
-import sys
+import sys, os
 from helpers import module_methods
 
 import send_email
@@ -106,6 +106,8 @@ class PolicyServer(SubscribeCallback):
 
                         if action == "shutdown_now": # send to receiver to shutdown entire service
                             self.publish_message(message.channel, {"canary_breach": {"module_name": msg['request']['module_name'], "uuid": msg['request']['user_uuid'], "channel": ['channel'], "action": action}})
+                            print("PolicyServer: Canary Breach level A, shutting down...")
+                            os._exit(1)
 
                         elif action == "email_admins_blacklist":
                             self.pd.device_access_blacklist("*", "*", msg['request']['user_uuid'])

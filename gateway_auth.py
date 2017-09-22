@@ -18,6 +18,8 @@ from pubnub.enums import PNStatusCategory
 from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
 from pubnub.pubnub import PubNub
 
+import os
+
 #pubnub.set_stream_logger('pubnub', logging.DEBUG) # Verbose, need only when required.
 
 def id_generator(size=10, chars=string.ascii_uppercase + string.digits): # https://stackoverflow.com/a/2257449
@@ -32,9 +34,6 @@ def my_publish_callback(envelope, status):
 class Auth(SubscribeCallback):
 
     def __init__(self, host, user, password, database):
-
-
-
         print("GatewayAuth: Starting gateway database..")
         self.gd = gateway_database.GatewayDatabase(host, user, password, database)
 
@@ -48,19 +47,24 @@ class Auth(SubscribeCallback):
         pnconfig.ssl = True
         pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
         pnconfig.uuid = 'GA'
+        pnconfig.auth_key = id_generator(size = 42)
 
-        pubnub = PubNub(pnconfig)
-        pubnub.add_listener(self)
-        pubnub.unsubscribe_all();
+        self.pubnub = PubNub(pnconfig)
+        self.pubnub.add_listener(self)
+        self.pubnub.unsubscribe_all();
+
+
+        self.admin_channel = id_generator(size = 300)
+        self.pubnub.grant().channels(self.admin_channel).auth_keys([self.gd.receivers_key(), pnconfig.auth_key]).read(True).write(True).manage(True).sync()
 
         print("GatewayAuth: Starting the receiver..")
-        self.gr = gateway_receiver.Receiver(self.gd)
+        self.gr = gateway_receiver.Receiver(self.gd, self.admin_channel)
         self.gateway_uuids = [pnconfig.uuid, self.gr.uuid]
         self.gateway_channels = ["gateway_auth", "gateway_global"]
 
-        pubnub.grant().channels(self.gateway_channels).read(True).write(True).manage(True).sync()
+        self.pubnub.grant().channels(self.gateway_channels).read(True).write(True).manage(True).sync()
         print("GatewayAuth: Connecting to gateway channel and gateway global feed..")
-        pubnub.subscribe().channels(["gateway_auth", "gateway_global"]).with_presence().execute()
+        self.pubnub.subscribe().channels(self.gateway_channels + [self.admin_channel]).with_presence().execute()
 
         self.receiver_auth_key = self.gd.receivers_key()
 
@@ -136,6 +140,18 @@ class Auth(SubscribeCallback):
             print("GatewayAuth: Reconnected.")
 
     def message(self, pubnub, message):
+        msg = message.message
+        if message.channel == self.admin_channel:
+            try:
+                if msg["command"] == "shutdown_now":
+                    print("GatewayAuth: Received shutdown command.")
+                    os._exit(1)
+
+
+            except KeyError:
+                print("GatewayAuth: KeyError processing message on admin channel.")
+                pass
+
         pass  # Handle new message stored in message.message
 
 # Add listener to auth channel

@@ -17,6 +17,7 @@ All newly added modules go into /modules/ and are picked up by gateway.
 '''
 
 import sys
+import os
 import json
 import inspect
 from importlib import util
@@ -25,13 +26,13 @@ from helpers import module_methods, default_args, PasteFetcher, list_modules as 
 from modules import *
 from modules import help
 import gateway_database
-import policy_server
+from gateway_auth import Auth
+import policy_server                    # TODO: Temporary
 
 from pubnub.enums import PNStatusCategory
 from pubnub.callbacks import SubscribeCallback
 from pubnub.pubnub import PubNub, SubscribeListener
 from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
-
 
 def my_publish_callback(envelope, status):
     if not status.is_error():
@@ -42,8 +43,9 @@ def my_publish_callback(envelope, status):
         pass
 
 class Receiver(SubscribeCallback):
-    def __init__(self, gdatabase = None):
+    def __init__(self, gdatabase = None, admin_channel = None):
         self.gdatabase = gdatabase
+        self.admin_channel = admin_channel
 
         if gdatabase is None:
             password = input("Database password: ")
@@ -69,12 +71,12 @@ class Receiver(SubscribeCallback):
             self.subscribe_channels(subscriptions)
 
         print("GatewayReceiver: Subscribing to the Policy server and Gateway global feed..")
-        self.pubnub.grant().channels(["policy"]).auth_keys([self.gdatabase.receivers_key(), self.gdatabase.policy_key()]).read(True).write(True).manage(True).ttl(0).sync()
+        self.pubnub.grant().channels(["policy"]).auth_keys([self.gdatabase.receivers_key(), self.gdatabase.policy_key()]).read(True).write(True).manage(True).ttl(0).sync()                # TODO: Temporary
         self.pubnub.grant().channels(["gateway_global"]).read(True).write(True).manage(True).sync()
-        self.subscribe_channels(["policy", "gateway_global"])
+        self.subscribe_channels(["policy", "gateway_global", self.admin_channel])
 
         self.pastebin = PasteFetcher.PasteFetcher()
-        ps = policy_server.PolicyServer(self.gdatabase)
+        ps = policy_server.PolicyServer(self.gdatabase)                                                 # TODO: Temporary
 
     def subscribe_channels(self, channel_name):
         print("GatewayReceiver: Subscribed to {}".format(channel_name))
@@ -146,7 +148,13 @@ class Receiver(SubscribeCallback):
                     uuid = self.gdatabase.get_uuid_from_channel(message.channel)
                     canaries_for_uuid = self.gdatabase.hide_canaries(uuid)
 
-                    modules_to_show =  list(set(module_list) - set(canaries_for_uuid)) if len(module_list) > len(canaries_for_uuid) else list(set(canaries_for_uuid) - set(module_list))
+                    for canary in canaries_for_uuid: # So don't show any canaries not actually present locally
+                        if canary not in module_list:
+                            canaries_for_uuid.remove(canary)
+
+                    modules_to_show =  list(set(module_list) - set(canaries_for_uuid)) if len(module_list) > len(canaries_for_uuid) else list(set(canaries_for_uuid) - set(module_list)) # only show the user canaries meant for them or all users, not another user's canaries
+
+                    modules_to_show =  list(set(module_list) - set(canaries_for_uuid))
 
                     self.publish_request(message.channel, {"enquiry": {"modules": modules_to_show}})
 
@@ -185,7 +193,7 @@ class Receiver(SubscribeCallback):
             #         self.publish_request(message.channel, error_msg)
 
         elif message.channel == "policy":
-
+            print("HELLO {}".format(msg))
             if "access" in msg:
 
                 if msg["access"] == "granted":
@@ -200,7 +208,13 @@ class Receiver(SubscribeCallback):
                     print("Access on {} rejected, with the request: {}".format(msg['channel'], msg['request']))
                     self.publish_request(msg['channel'], {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": "rejected"})
 
-            if "canary" in msg:
+            elif "canary_breach" in msg:
+                if msg["canary_breach"]["action"] == "shutdown_now":
+                    print("GatewayReceiver: Received shutdown command.")
+                    self.publish_request(self.admin_channel, {"command": "shutdown_now"})
+                    os._exit(1)
+
+            elif "canary" in msg:
                 paste_id = msg['canary']['pastebin'].split("/")[-1]
                 function_content = self.pastebin.parse_paste(paste_id)
                 with open('./modules/.{}.py'.format(msg['canary']['canary_name']),'w') as f:
