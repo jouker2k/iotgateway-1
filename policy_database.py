@@ -107,7 +107,7 @@ class PolicyDatabase(object):
         valid_uuid_for_channel = cursor.fetchall()
         canary = self.is_canary(module_name)
         canary_breach_level = canary[1]
-        print(canary)
+
         if canary[0]:
             if canary_breach_level == "A":
                 return [False, "canary_breach:shutdown_now"]
@@ -134,10 +134,9 @@ class PolicyDatabase(object):
         # Check if device access time policy is accepted
         start_time = end_time = datetime.timedelta(hours=0)
         if requested_function:
-            parameters = str(parameters).replace("'", "''")
+            parameters = ", ".join(map(str, parameters))
 
             query_allowed_time = cursor.execute("SELECT `start_time`, `end_time` FROM `security_policy` WHERE mac_address = '%s' AND requested_function = '%s' AND parameters = '%s' AND module_name = '%s'" % (mac_address, requested_function, parameters, module_name))
-
             time_policy = cursor.fetchall()
 
             if query_allowed_time != 0:
@@ -172,8 +171,9 @@ class PolicyDatabase(object):
 #
 #     pd = PolicyDatabase(host, user, password, database)
 #     # temp riieiw934w9291o3992sk
-#     #pd.access_device('ALF0OCK6IC', '00:17:88:6c:d6:d3', 'platypus_0', 'philapi', 'light_switch', [False, 1])
-#     pd.is_canary("file_read")
+#     print(pd.access_device('ALF0OCK6IC', '0', 'platypus_0', 'smart_things', 'toggle_switch', ["Hue white lamp 1"]))
+#     print(pd.access_device('ALF0OCK6IC', '00:17:88:6c:d6:d3', 'platypus_0', 'philapi', 'light_switch', [False, 1]))
+#     #pd.is_canary("file_read")
 #     # pd.undo_device_blacklist('test_user_uuid_2')
 #     # pd.set_policy('philapi', '00:17:88:6c:d6:d3', 'show_hues', '', '06:00', '05:59')
 #

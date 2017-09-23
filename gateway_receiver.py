@@ -193,7 +193,6 @@ class Receiver(SubscribeCallback):
             #         self.publish_request(message.channel, error_msg)
 
         elif message.channel == "policy":
-            print("HELLO {}".format(msg))
             if "access" in msg:
 
                 if msg["access"] == "granted":

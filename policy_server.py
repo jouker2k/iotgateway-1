@@ -86,14 +86,13 @@ class PolicyServer(SubscribeCallback):
                 # Also note we need to remove the `parameters` key now, unneeded when sent to receiver.
 
         elif 'access' not in msg: #if msg['access']:
-            print("hi")
             if msg['request']['module_name'] != 'help':
                 if 'user_uuid' in msg['request'] and 'mac_address' in msg:
 
                     access = self.pd.access_device(msg['channel'], msg['mac_address'], msg['request']['user_uuid'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'])
 
                     status = "granted" if access[0] is True else "rejected: {}".format(access[1])
-                    print("ACCESS IS: {}".format(access[1]))
+
                     self.publish_message(message.channel, {"access": status, "channel": msg['channel'], "request": msg['request']})
                     self.pd.access_log(msg['request']['user_uuid'], msg['channel'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'], status)
 
