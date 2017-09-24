@@ -2,6 +2,7 @@
 
 import requests
 import random
+import string
 from bs4 import BeautifulSoup
 
 class PasteFetcher():

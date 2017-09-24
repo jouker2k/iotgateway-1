@@ -33,6 +33,8 @@ from pubnub.callbacks import SubscribeCallback
 from pubnub.pubnub import PubNub, SubscribeListener
 from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
 
+import subprocess
+
 def my_publish_callback(envelope, status):
     if not status.is_error():
         print("GatewayReceiver: Message successfully sent to client.")
@@ -53,7 +55,7 @@ class Receiver(SubscribeCallback):
         if admin_channel is None:
             self.admin_channel = idgen.id_generator(size = 255)
 
-        self.gdatabase.set_receiver_auth_key(self.admin_channel)
+        self.gdatabase.set_receiver_auth_channel(self.admin_channel)
 
         pnconfig = PNConfiguration()
         pnconfig.subscribe_key = self.gdatabase.sub_key()
@@ -76,7 +78,7 @@ class Receiver(SubscribeCallback):
 
         print("GatewayReceiver: Subscribing to the Policy server and Gateway global feed..")
         self.pubnub.grant().channels(["policy"]).auth_keys([self.gdatabase.receivers_key(), self.gdatabase.policy_key()]).read(True).write(True).manage(True).ttl(0).sync()                # TODO: Temporary
-        self.pubnub.grant().channels(["gateway_global"]).read(True).write(True).manage(True).sync()
+        self.pubnub.grant().channels(["gateway_global", self.admin_channel]).read(True).write(True).manage(True).sync()
         self.subscribe_channels(["policy", "gateway_global", self.admin_channel])
 
         self.pastebin = PasteFetcher.PasteFetcher()
@@ -119,7 +121,59 @@ class Receiver(SubscribeCallback):
     def message(self, pubnub, message):
         msg = message.message
         print(msg)
-        if message.channel != "policy":
+
+
+        if message.channel == self.admin_channel and "success" not in msg.keys() and "error" not in msg.keys():
+
+            '''
+            {"module_name": "x", "pastebin": "y", "installation_commands": "pip ..."}
+            '''
+
+            try:
+                paste_id = msg['pastebin'].split("/")[-1]
+                function_content = self.pastebin.parse_paste(paste_id)
+                with open('./modules/{}.py'.format(msg['module_name']),'w') as f:
+
+                    cmd = msg["installation_commands"].split(" ")
+
+                    if len(cmd) > 1:
+                        if "pip" is in cmd or "brew" in cmd:
+                            try:
+                                moduleDeclared = False
+                                for param in cmd[1:]:
+                                    print("function_content {}".format(function_content))
+                                    if param in function_content:
+                                        test = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+                                        output = test.communicate()[0]
+                                        moduleDeclared = True
+                                        self.publish_request(self.admin_channel, {"success": "installed commands: {}".format(output), "request": message.message})
+                                        break
+
+                                if not moduleDeclared:
+                                    self.publish_request(self.admin_channel, {"error": "the command you asked to run is not required in the module", "request": message.message})
+                                    os.remove(f.name)
+                                    return
+
+                            except Exception as e:
+                                print("GatewayReceiver: There was an issue checking for installation commands for dependencies required for new module. {}".format(e))
+                                os.remove(f.name)
+                                return
+
+                                return
+                        else:
+                            self.publish_request(self.admin_channel, {"error": "the only acceptable package managers are pip or brew", "request": message.message})
+                            os.remove(f.name)
+                            return
+
+                    f.write(function_content)
+                    self.publish_request(self.admin_channel, {"success": "module {} successfully added".format(msg["module_name"]), "request": message.message})
+
+            except KeyError:
+                print("GatewayReceiver: module_name or pastebin or installation_commands was not found in the json, all required.")
+                self.publish_request(self.admin_channel, {"error": "module_name, pastebin and installation_commands must be included as keys", "request": message.message})
+                pass
+
+        elif message.channel != "policy":
             if 'enquiry' in msg and msg['enquiry'] is True:
                 if 'module_name' in msg:
                     module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
@@ -220,9 +274,10 @@ class Receiver(SubscribeCallback):
             elif "canary" in msg:
                 paste_id = msg['canary']['pastebin'].split("/")[-1]
                 function_content = self.pastebin.parse_paste(paste_id)
-                with open('./modules/.{}.py'.format(msg['canary']['canary_name']),'w') as f:
+                with open('./modules/{}.py'.format(msg['canary']['canary_name']),'w') as f:
                     f.write(function_content)
 
+            pass
 
 if __name__ == "__main__":
     receiver = Receiver()
