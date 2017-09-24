@@ -112,6 +112,11 @@ class GatewayDatabase(object):
 
         return subscription_channels
 
+    def set_receiver_auth_key(self, key):
+        cursor = self.connection.cursor()
+        cursor.execute("UPDATE gateway_keys SET receiver_auth_key = '%s' WHERE id = '%s';" % (key, 1))
+
+
 # if __name__ == "__main__":
 #
 #     password = input("Database password: ")
@@ -124,5 +129,6 @@ class GatewayDatabase(object):
 #     database = 'c1312433'
 #
 #     gd = GatewayDatabase(host, user, password, database)
-#     print(gd.hide_canaries('platypus_0'))
+#     print(gd.set_receiver_auth_key("test"))
+#     #print(gd.hide_canaries('platypus_0'))
 # #     gd.get_channels()

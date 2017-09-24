@@ -22,11 +22,10 @@ import json
 import inspect
 from importlib import util
 
-from helpers import module_methods, default_args, PasteFetcher, list_modules as lm
+from helpers import module_methods, default_args, PasteFetcher, id_generator as idgen, list_modules as lm
 from modules import *
 from modules import help
 import gateway_database
-from gateway_auth import Auth
 import policy_server                    # TODO: Temporary
 
 from pubnub.enums import PNStatusCategory
@@ -50,6 +49,11 @@ class Receiver(SubscribeCallback):
         if gdatabase is None:
             password = input("Database password: ")
             self.gdatabase = gateway_database.GatewayDatabase(host = 'ephesus.cs.cf.ac.uk', user = 'c1312433', password = password, database = 'c1312433')
+
+        if admin_channel is None:
+            self.admin_channel = idgen.id_generator(size = 255)
+
+        self.gdatabase.set_receiver_auth_key(self.admin_channel)
 
         pnconfig = PNConfiguration()
         pnconfig.subscribe_key = self.gdatabase.sub_key()

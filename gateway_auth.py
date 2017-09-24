@@ -3,10 +3,8 @@ __author__ = "sgript"
 
 Authentication code for clients connecting to gateway via pubnub
 '''
-import string
-import random
+
 import json
-import time
 import hashlib
 import gateway_database
 import gateway_receiver
@@ -19,11 +17,9 @@ from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
 from pubnub.pubnub import PubNub
 
 import os
+from helpers import id_generator as idgen
 
 #pubnub.set_stream_logger('pubnub', logging.DEBUG) # Verbose, need only when required.
-
-def id_generator(size=10, chars=string.ascii_uppercase + string.digits): # https://stackoverflow.com/a/2257449
-    return ''.join(random.choice(chars) for _ in range(size))
 
 def my_publish_callback(envelope, status):
     if not status.is_error():
@@ -47,14 +43,14 @@ class Auth(SubscribeCallback):
         pnconfig.ssl = True
         pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
         pnconfig.uuid = 'GA'
-        pnconfig.auth_key = id_generator(size = 42)
+        pnconfig.auth_key = idgen.id_generator(size = 42)
 
         self.pubnub = PubNub(pnconfig)
         self.pubnub.add_listener(self)
         self.pubnub.unsubscribe_all();
 
 
-        self.admin_channel = id_generator(size = 300)
+        self.admin_channel = idgen.id_generator(size = 255)
         self.pubnub.grant().channels(self.admin_channel).auth_keys([self.gd.receivers_key(), pnconfig.auth_key]).read(True).write(True).manage(True).sync()
 
         print("GatewayAuth: Starting the receiver..")
@@ -111,8 +107,8 @@ class Auth(SubscribeCallback):
 
             elif presence.channel not in self.gateway_channels and presence.uuid == presence.channel: # uuid channel presence
                 print('[2] REQUIRED USER ({}) HAS JOINED THE UUID CHANNEL ({}).'.format(presence.uuid, presence.channel))
-                users_auth_key = id_generator()
-                channelName = id_generator()
+                users_auth_key = idgen.id_generator()
+                channelName = idgen.id_generator()
 
                 # Send auth key to user
                 pubnub.publish().channel(presence.uuid).message(
