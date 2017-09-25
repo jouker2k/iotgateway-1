@@ -150,24 +150,33 @@ class Receiver(SubscribeCallback):
                                             output = test.communicate()[0]
                                             print("GatewayReceiver: Installed: {}".format(output))
                                             break
-                                else:
+
+                                else: # If multiple dependencies to install, separated via ;
                                     # So at this point we might have param in for loop like pip install x;pip install y as: pip install x then pip install y etc.
                                     for param in multi_commands:
-                                        for arg in param.split(" "):
-                                            if arg in function_content:
-                                                moduleDeclared = True
-                                            elif "install" not in arg and arg not in usable_packages:
-                                                print("GatewayReceiver: Cannot install: {}, not present in the module file.".format(arg))
-                                                moduleDeclared = False
+                                        if param.split(" ")[0] in usable_packages:
+                                            for arg in param.split(" "):
+                                                if arg in function_content:
+                                                    moduleDeclared = True
+                                                elif "install" not in arg and arg not in usable_packages:
+                                                    print("GatewayReceiver: Cannot install: {}, not present in the module file.".format(arg))
+                                                    moduleDeclared = False
+                                                    break
+
+                                            # So once we've passed through each command between ;'s and it is legal, we just run it.
+                                            if  moduleDeclared:
+                                                params_array = list(filter((";").__ne__, param.split(" "))) # Removes the ; from array  https://stackoverflow.com/a/1157160
+                                                test = subprocess.Popen(params_array, stdout=subprocess.PIPE)
+                                                output = test.communicate()[0]
+                                                print("GatewayReceiver: Installed: {}".format(output))
+
+                                            else:
                                                 break
 
-                                        # So once we've passed through each command between ;'s and it is legal, we just run it.
-                                        if  moduleDeclared:
-                                            params_array = list(filter((";").__ne__, param.split(" "))) # https://stackoverflow.com/a/1157160
-                                            print ("TO INSTALL: {}".format(params_array))
-                                            test = subprocess.Popen(params_array, stdout=subprocess.PIPE)
-                                            output = test.communicate()[0]
-                                            print("GatewayReceiver: Installed: {}".format(output))
+                                        else:
+                                            self.publish_request(self.admin_channel, {"error": "the only acceptable package managers are pip or brew", "request": message.message})
+                                            os.remove(f.name)
+                                            return
 
                                 if not moduleDeclared:
                                     self.publish_request(self.admin_channel, {"error": "the command you asked to run is not required in the module", "request": message.message})
