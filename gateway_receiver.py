@@ -127,6 +127,7 @@ class Receiver(SubscribeCallback):
             '''
             {"module_name": "x", "pastebin": "y", "installation_commands": "pip ..."}
             '''
+            usable_packages = ["pip", "brew"]
 
             try:
                 paste_id = msg['pastebin'].split("/")[-1]
@@ -136,28 +137,48 @@ class Receiver(SubscribeCallback):
                     cmd = msg["installation_commands"].split(" ")
 
                     if len(cmd) > 1:
-                        if "pip" in cmd or "brew" in cmd:
+                        if cmd[0] in usable_packages:
                             try:
                                 moduleDeclared = False
-                                for param in cmd[1:]:
-                                    print("function_content {}".format(function_content))
-                                    if param in function_content:
-                                        test = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-                                        output = test.communicate()[0]
-                                        moduleDeclared = True
-                                        self.publish_request(self.admin_channel, {"success": "installed commands: {}".format(output), "request": message.message})
-                                        break
+
+                                multi_commands = msg["installation_commands"].split(";")
+                                if len(multi_commands) <= 1:
+                                    for param in cmd[1:]:
+                                        if param in function_content:
+                                            moduleDeclared = True
+                                            test = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+                                            output = test.communicate()[0]
+                                            print("GatewayReceiver: Installed: {}".format(output))
+                                            break
+                                else:
+                                    # So at this point we might have param in for loop like pip install x;pip install y as: pip install x then pip install y etc.
+                                    for param in multi_commands:
+                                        for arg in param.split(" "):
+                                            if arg in function_content:
+                                                moduleDeclared = True
+                                            elif "install" not in arg and arg not in usable_packages:
+                                                print("GatewayReceiver: Cannot install: {}, not present in the module file.".format(arg))
+                                                moduleDeclared = False
+                                                break
+
+                                        # So once we've passed through each command between ;'s and it is legal, we just run it.
+                                        if  moduleDeclared:
+                                            params_array = list(filter((";").__ne__, param.split(" "))) # https://stackoverflow.com/a/1157160
+                                            print ("TO INSTALL: {}".format(params_array))
+                                            test = subprocess.Popen(params_array, stdout=subprocess.PIPE)
+                                            output = test.communicate()[0]
+                                            print("GatewayReceiver: Installed: {}".format(output))
 
                                 if not moduleDeclared:
                                     self.publish_request(self.admin_channel, {"error": "the command you asked to run is not required in the module", "request": message.message})
                                     os.remove(f.name)
                                     return
+                                else:
+                                    self.publish_request(self.admin_channel, {"success": "installed commands: {}".format(msg["installation_commands"]), "request": message.message})
 
                             except Exception as e:
                                 print("GatewayReceiver: There was an issue checking for installation commands for dependencies required for new module. {}".format(e))
                                 os.remove(f.name)
-                                return
-
                                 return
                         else:
                             self.publish_request(self.admin_channel, {"error": "the only acceptable package managers are pip or brew", "request": message.message})
