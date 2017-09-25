@@ -12,20 +12,20 @@ import policy_database
 
 class Alert:
     def __init__(self, database):
-        email_config = database.get_email_config()
+        self.email_config = database.get_email_config()
 
-        self.MY_ADDRESS = email_config[0][1]
-        self.PASSWORD = email_config[0][2]
+        self.MY_ADDRESS = self.email_config[0][1]
+        self.PASSWORD = self.email_config[0][2]
         self.database_emails = database.get_admin_emails()
-
-        self.s = smtplib.SMTP(host = email_config[0][3], port = email_config[0][4])
-        self.s.starttls()
-        self.s.login(self.MY_ADDRESS, self.PASSWORD)
 
         self.emails = ["s94ahmad@gmail.com", "ahmads18@cardiff.ac.uk"]
 
 
     def to_administrators(self, function, uuid, channel):
+        s = smtplib.SMTP(host = self.email_config[0][3], port = self.email_config[0][4])
+        s.starttls()
+        s.login(self.MY_ADDRESS, self.PASSWORD)
+
         for email in self.database_emails:
             msg = MIMEMultipart()
             message = "The canary function {} was ran by {} on channel at {}!".format(function, uuid, channel)
@@ -36,10 +36,10 @@ class Alert:
 
             msg.attach(MIMEText(message, 'plain'))
 
-            self.s.send_message(msg)
+            s.send_message(msg)
             del msg
 
-        self.s.quit()
+        s.quit()
 
     def email_config(self):
         pass

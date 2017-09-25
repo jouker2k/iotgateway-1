@@ -122,7 +122,6 @@ class Receiver(SubscribeCallback):
         msg = message.message
         print(msg)
 
-
         if message.channel == self.admin_channel and "success" not in msg.keys() and "error" not in msg.keys():
 
             '''
@@ -137,7 +136,7 @@ class Receiver(SubscribeCallback):
                     cmd = msg["installation_commands"].split(" ")
 
                     if len(cmd) > 1:
-                        if "pip" is in cmd or "brew" in cmd:
+                        if "pip" in cmd or "brew" in cmd:
                             try:
                                 moduleDeclared = False
                                 for param in cmd[1:]:
@@ -182,29 +181,31 @@ class Receiver(SubscribeCallback):
                     # They mispelled or something.
 
                     if module_found:
+                        try:
+                            methods = module_methods.find(msg['module_name']) # Gets module's methods (cannot be inside a class)
 
-                        methods = module_methods.find(msg['module_name']) # Gets module's methods (cannot be inside a class)
+                            module = sys.modules['modules.' + msg['module_name']]
+                            # TODO: CHECKING HERE IF MODULE/FUNCTIONS EXIST, IF NOT, SEND PUB
+                            dictionary_of_functions = {}
+                            for method in methods:
+                                function = getattr(module, method)
+                                dictionary_of_functions[method] = inspect.getargspec(function)[0]
 
-                        module = sys.modules['modules.' + msg['module_name']]
+                                # Going to remove any default parameters - no need to supply keys etc.
+                                self.delete_defaults(function, dictionary_of_functions[method])
 
-                        dictionary_of_functions = {}
-                        for method in methods:
-                            function = getattr(module, method)
-                            dictionary_of_functions[method] = inspect.getargspec(function)[0]
+                            enquiry_response = {"enquiry": {"module_name": msg['module_name'], "module_methods": dictionary_of_functions}}
 
-                            # Going to remove any default parameters - no need to supply keys etc.
-                            self.delete_defaults(function, dictionary_of_functions[method])
+                            self.publish_request(message.channel, enquiry_response)
 
-                        enquiry_response = {"enquiry": {"module_name": msg['module_name'], "module_methods": dictionary_of_functions}}
-
-                        self.publish_request(message.channel, enquiry_response)
+                        except KeyError:
+                            self.publish_request(message.channel, {"error": "Module or function not found"})
 
                 # Else if no module name supplied just show list of them available.
                 elif 'module_name' not in msg and msg['enquiry'] is True:
-                    ## TEST
                     module_list = lm.list_modules()
                     uuid = self.gdatabase.get_uuid_from_channel(message.channel)
-                    canaries_for_uuid = self.gdatabase.hide_canaries(uuid)
+                    canaries_for_uuid = self.gdatabase.hide_canaries(uuid) # We retrieve the canaries that are not meant for the users then hide them (below)
 
                     for canary in canaries_for_uuid: # So don't show any canaries not actually present locally
                         if canary not in module_list:
@@ -212,7 +213,7 @@ class Receiver(SubscribeCallback):
 
                     modules_to_show =  list(set(module_list) - set(canaries_for_uuid)) if len(module_list) > len(canaries_for_uuid) else list(set(canaries_for_uuid) - set(module_list)) # only show the user canaries meant for them or all users, not another user's canaries
 
-                    modules_to_show =  list(set(module_list) - set(canaries_for_uuid))
+                    #modules_to_show =  list(set(module_list) - set(canaries_for_uuid))
 
                     self.publish_request(message.channel, {"enquiry": {"modules": modules_to_show}})
 

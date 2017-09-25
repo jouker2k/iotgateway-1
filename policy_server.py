@@ -64,14 +64,17 @@ class PolicyServer(SubscribeCallback):
     '''device_id expected to be MAC address'''
     def message(self, pubnub, message):
         msg = message.message
-
-        if 'policy_admin' in msg:
+        if 'policy_admin' in msg.keys():
+            print(msg['policy_admin']['requested_function'])
             method_to_call = getattr(self.pd, msg['policy_admin']['requested_function'])
             result = method_to_call(*msg['policy_admin']['parameters'])
 
 
             if method_to_call != getattr(self.pd, "canary_entry"):
-                self.publish_message(message.channel, {"policy_admin_result": str(result)})
+                if result is not None:
+                    self.publish_message(message.channel, {"result.policy.admin": result})
+                else:
+                    self.publish_message(message.channel, {"result.policy.admin": "successully ran {}".format(msg['policy_admin']['requested_function'])})
             else:
                 # {"policy_admin": {"requested_function": "canary_entry", "parameters": ["testfile", "B"], "pastebin": "url"}}
                 # send this response to gateway
@@ -85,7 +88,8 @@ class PolicyServer(SubscribeCallback):
                 # TODO: {'canary': {'requested_function': 'file_reading', 'parameters': ['testfile', 'B'], 'pastebin': 'https://pastebin.com/RuYyiMwj'}}
                 # Also note we need to remove the `parameters` key now, unneeded when sent to receiver.
 
-        elif 'access' not in msg: #if msg['access']:
+        #elif 'access' not in msg and 'policy_admin' not in msg: #if msg['access']:
+        elif 'request' in msg.keys():
             if msg['request']['module_name'] != 'help':
                 if 'user_uuid' in msg['request'] and 'mac_address' in msg:
 

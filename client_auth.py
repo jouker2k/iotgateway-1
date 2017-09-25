@@ -114,4 +114,4 @@ class Client(SubscribeCallback):
             print(message.message)
 
 if __name__ == "__main__":
-    client = Client("platypus_134")
+    client = Client("platypus_151")

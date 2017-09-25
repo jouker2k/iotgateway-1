@@ -45,6 +45,7 @@ class PolicyDatabase(object):
         return rows
 
     def set_policy(self, module_name, mac_address, requested_function, parameters, start_time, end_time):
+        parameters = ", ".join(map(str, parameters))
         cursor = self.connection.cursor()
         cursor.execute("INSERT INTO security_policy(module_name, mac_address, requested_function, parameters, start_time, end_time) VALUES('%s','%s','%s','%s','%s','%s');" % (module_name, mac_address, requested_function, parameters, start_time, end_time))
 
@@ -125,11 +126,19 @@ class PolicyDatabase(object):
 
         # Check if user blacklisted for those functions/modules
         query = cursor.execute("SELECT user_uuid FROM device_access_blacklisted WHERE user_uuid = '%s' AND module_name = '%s' AND requested_function = '%s'" % (uuid, module_name, requested_function))
-        blacklisted = cursor.fetchall()
+        blacklisted_specific = cursor.fetchall()
 
-        if blacklisted:
+        if blacklisted_specific:
             print("PolicyDatabase: User {} blacklisted on {} function in {} module".format(uuid, requested_function, module_name))
-            return [False, "blacklisted"]
+            return [False, "blacklisted_specific"]
+
+        else:
+            query = cursor.execute("SELECT user_uuid FROM device_access_blacklisted WHERE user_uuid = '%s' AND module_name = '%s' AND requested_function = '%s'" % (uuid, "*", "*"))
+            blacklisted_global = cursor.fetchall()
+
+            if blacklisted_global:
+                print("PolicyDatabase: User {} blacklisted globally".format(uuid))
+                return [False, "blacklisted_global"]
 
         # Check if device access time policy is accepted
         start_time = end_time = datetime.timedelta(hours=0)
