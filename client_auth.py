@@ -80,9 +80,11 @@ class Client(SubscribeCallback):
                 print("Client Connecting to private channel '{}' and global channel '{}'..".format(self.channel, self.global_channel))
                 self.pubnub.subscribe().channels([self.channel, self.global_channel]).execute()
 
-                show_modules = input("Show modules available (Y/n)? ")
-                if show_modules is "Y":
-                    self.enquire_modules(self.channel)
+                while True:
+                    show_modules = input("Show modules available (Y/n)? ")
+                    if show_modules == "Y":
+                        self.enquire_modules(self.channel)
+                        break
 
         elif 'enquiry' in message.message:
                 try: # Getting available modules and choosing one to get methods from.
@@ -114,4 +116,4 @@ class Client(SubscribeCallback):
             print(message.message)
 
 if __name__ == "__main__":
-    client = Client("platypus_151")
+    client = Client("platypus_165")

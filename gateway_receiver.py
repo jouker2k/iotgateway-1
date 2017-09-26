@@ -229,7 +229,10 @@ class Receiver(SubscribeCallback):
                             self.publish_request(message.channel, enquiry_response)
 
                         except KeyError:
-                            self.publish_request(message.channel, {"error": "Module or function not found"})
+                            self.publish_request(message.channel, {"error": "Module {} or function {} not found".format(msg['module_name'], msg['module_methods'])})
+
+                    else:
+                        self.publish_request(message.channel, {"error": "Module {} was not found.".format(msg['module_name'])})
 
                 # Else if no module name supplied just show list of them available.
                 elif 'module_name' not in msg and msg['enquiry'] is True:
@@ -255,20 +258,22 @@ class Receiver(SubscribeCallback):
                         if module_found:
                             module = sys.modules['modules.' + msg['module_name']]
 
-                            # Temporarily disabled
-                            method_requested = getattr(module, msg['requested_function'])
-                            method_args = inspect.getargspec(method_requested)[0]
+                            try:
+                                method_requested = getattr(module, msg['requested_function'])
+                                method_args = inspect.getargspec(method_requested)[0]
 
-                            self.delete_defaults(method_requested, method_args)
-                            if isinstance(msg['parameters'], list) and len(msg['parameters']) == len(method_args):
-                                get_mac = getattr(module, 'get_mac')
-                                mac_address = get_mac()
+                                self.delete_defaults(method_requested, method_args)
+                                if isinstance(msg['parameters'], list) and len(msg['parameters']) == len(method_args):
+                                    get_mac = getattr(module, 'get_mac')
+                                    mac_address = get_mac()
 
-                                self.publish_request("policy", {"channel": message.channel, "mac_address": mac_address, "request": msg})
+                                    self.publish_request("policy", {"channel": message.channel, "mac_address": mac_address, "request": msg})
 
-                            else:
-                                self.publish_request(message.channel, {"error": "Your request's parameters must be an array and match required parameters of the method."})
+                                else:
+                                    self.publish_request(message.channel, {"error": "Your request's parameters must be an array and match required parameters of the method."})
 
+                            except AttributeError:
+                                self.publish_request(message.channel, {"error": "Module {} has no function {}".format(msg['module_name'], msg['requested_function'])})
 
                     else:
                         print("{}: Error no module name supplied even when not an enquiry".format(message.channel)) # tidy up later
