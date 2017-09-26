@@ -42,7 +42,6 @@ class GatewayDatabase(object):
         for row in rows:
             result.append(row[0])
 
-        print(result)
         return result
 
     def policy_key(self):

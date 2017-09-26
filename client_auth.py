@@ -49,8 +49,8 @@ class Client(SubscribeCallback):
     def enquire_module_methods(self, channel, module):
         return(self.publish_request(channel, {"enquiry": True, "module_name": module}))
 
-    def device_request(self, channel, enquiry_bool, module_name = None, requested_function = None, parameters = False):
-        jsonmsg = {"user_uuid": self.pnconfig.uuid, "enquiry": enquiry_bool, "module_name": module_name, "requested_function": requested_function, "parameters": parameters}
+    def device_request(self, channel, module_name = None, requested_function = None, parameters = False):
+        jsonmsg = {"user_uuid": self.pnconfig.uuid, "enquiry": False, "module_name": module_name, "requested_function": requested_function, "parameters": parameters}
         return(self.publish_request(channel, jsonmsg))
 
     def status(self, pubnub, status):
@@ -106,7 +106,7 @@ class Client(SubscribeCallback):
 
                             if params:
                                 try:
-                                    self.device_request(self.channel, False, msg['enquiry']['module_name'], method_chosen, ast.literal_eval(params))
+                                    self.device_request(self.channel, msg['enquiry']['module_name'], method_chosen, ast.literal_eval(params))
                                     break
                                 except:
                                     print("Error: This needs to be entered in array format/comma separated, use casing for bools")
@@ -125,4 +125,4 @@ class Client(SubscribeCallback):
             print(message.message)
 
 if __name__ == "__main__":
-    client = Client("platypus_209")
+    client = Client("platypus_263")

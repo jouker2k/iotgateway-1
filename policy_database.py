@@ -120,9 +120,7 @@ class PolicyDatabase(object):
             accessed_last = time_now_delta - last_access[0][0]
             if (accessed_last) < timedelta(minutes=1):
                 return [False, "rejected_too_soon"]
-            else:
-                 print("PolicyDatabase: Last access: {}".format(accessed_last))
-
+            
         # Before anything first check if corresponding channel has correct UUID requesting:
         query = cursor.execute("SELECT user_uuid FROM gateway_subscriptions WHERE channel = '%s' and user_uuid = '%s'" % (channel, uuid))
         valid_uuid_for_channel = cursor.fetchall()
