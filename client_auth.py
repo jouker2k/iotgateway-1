@@ -61,21 +61,23 @@ class Client(SubscribeCallback):
             print("Client: Reconnected.")
 
     def message(self, pubnub, message):
+        msg = message.message
+
         if not self.authed:
             uuid_hash = hashlib.new("sha3_512")
             encode = uuid_hash.update((self.pnconfig.uuid).encode("UTF-8"))
 
-            if message.message == uuid_hash.hexdigest():
+            if msg == uuid_hash.hexdigest():
                 print("Client: Connecting to UUID channel to retrieve private channel information..")
                 self.pubnub.subscribe().channels(self.pnconfig.uuid).execute()
 
-            if 'auth_key' in message.message:
+            if 'auth_key' in msg:
                 self.pubnub.unsubscribe().channels(self.pnconfig.uuid).execute();
-
-                self.channel = message.message['channel']
-                self.pnconfig.auth_key = message.message['auth_key']
-                self.global_channel = message.message['global_channel']
                 self.authed = True
+
+                self.channel = msg['channel']
+                self.pnconfig.auth_key = msg['auth_key']
+                self.global_channel = msg['global_channel']
 
                 print("Client Connecting to private channel '{}' and global channel '{}'..".format(self.channel, self.global_channel))
                 self.pubnub.subscribe().channels([self.channel, self.global_channel]).execute()
@@ -86,38 +88,41 @@ class Client(SubscribeCallback):
                         self.enquire_modules(self.channel)
                         break
 
-        elif 'enquiry' in message.message:
+        elif 'enquiry' in msg.keys() and not isinstance(msg["enquiry"], bool):
                 try: # Getting available modules and choosing one to get methods from.
-                    module_options = message.message['enquiry']['modules']
-                    show_module_methods = input("Choose a module to call methods from {}: ".format(module_options))
-                    self.enquire_module_methods(self.channel, show_module_methods)
-                except:
-                    pass
+                    if "modules" in msg["enquiry"].keys():
+                        module_options = msg['enquiry']['modules']
+                        show_module_methods = input("Choose a module to call methods from {}: ".format(module_options))
+                        self.enquire_module_methods(self.channel, show_module_methods)
 
-                try:
-                    module_methods = message.message['enquiry']['module_methods']
-                    method_chosen = input("Choose a method to call {}: ".format(module_methods))
-                    print("You chose: {}".format(method_chosen))
+                    elif "module_methods" in msg["enquiry"].keys():
+                        module_methods = msg['enquiry']['module_methods']
+                        method_chosen = input("Choose a method to call {}: ".format(module_methods))
+                        print("You chose: {}".format(method_chosen))
 
-                    while True:
-                        print("In corresponding order, please enter the parameters in an array below, leave blank if none:")
-                        params = input()
+                        while True:
+                            print("In corresponding order, please enter the parameters in an array below, leave blank if none:")
+                            params = input()
 
-                        if params:
-                            self.device_request(self.channel, False, message.message['enquiry']['module_name'], method_chosen, ast.literal_eval(params))
-                            break
-                        else:
-                            print("Please enter parameters.. If blank use []")
+                            if params:
+                                try:
+                                    self.device_request(self.channel, False, msg['enquiry']['module_name'], method_chosen, ast.literal_eval(params))
+                                    break
+                                except:
+                                    print("Error: This needs to be entered in array format/comma separated, use casing for bools")
+                                    pass
+                            else:
+                                print("Error: Please enter parameters.. If blank use []")
 
-                except:
-                    pass
+                except Exception as e:
+                    print("error {}".format(e))
 
-        elif 'result' or 'error' in message.message:
-            print("response retrieved: " + str(message.message))
+        elif 'result' in msg.keys() or 'error' in msg.keys():
+            print("response retrieved: " + str(msg))
             self.enquire_modules(self.channel)
 
         if message.channel == self.global_channel:
             print(message.message)
 
 if __name__ == "__main__":
-    client = Client("platypus_156")
+    client = Client("platypus_195")

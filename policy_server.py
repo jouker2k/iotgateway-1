@@ -113,7 +113,7 @@ class PolicyServer(SubscribeCallback):
                             os._exit(1)
 
                         elif action == "email_admins_blacklist":
-                            self.pd.device_access_blacklist("*", "*", msg['request']['user_uuid'])
+                            self.pd.device_access_blacklist("*", "", msg['request']['user_uuid'])
 
                 else:
                     print("Not received expected parameters.")

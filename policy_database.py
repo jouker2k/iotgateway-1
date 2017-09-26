@@ -153,12 +153,22 @@ class PolicyDatabase(object):
             return [False, "blacklisted_specific"]
 
         else:
-            query = cursor.execute("SELECT user_uuid FROM device_access_blacklisted WHERE user_uuid = '%s' AND module_name = '%s' AND requested_function = '%s'" % (uuid, "*", "*"))
-            blacklisted_global = cursor.fetchall()
+            # query = cursor.execute("SELECT devbl.user_uuid, abl.user_uuid FROM device_access_blacklisted AS devbl, auth_blacklisted AS abl WHERE (devbl.user_uuid = '%s' AND devbl.module_name = '%s') OR (abl.user_uuid = '%s' OR abl.channel = '%s')" % (uuid, "*", uuid, channel))
+            # blacklisted_global_module = cursor.fetchall()
+            query = cursor.execute("SELECT user_uuid FROM device_access_blacklisted WHERE user_uuid = '%s' AND module_name = '%s';" % (uuid, "*"))
+            blacklisted_global_module = cursor.fetchall()
 
-            if blacklisted_global:
-                print("PolicyDatabase: User {} blacklisted globally".format(uuid))
-                return [False, "blacklisted_global"]
+            if blacklisted_global_module:
+                print("PolicyDatabase: User {} blacklisted globally on module {}".format(uuid, module_name))
+                return [False, "blacklisted_global_module"]
+
+            else:
+                query = cursor.execute("SELECT user_uuid FROM auth_blacklisted WHERE user_uuid = '%s' OR channel = '%s'" % (uuid, channel))
+                blacklisted_global = cursor.fetchall()
+
+                if blacklisted_global:
+                    print("PolicyDatabase: User {} blacklisted globally".format(uuid))
+                    return [False, "blacklisted_global"]
 
         # Check if device access time policy is accepted
         start_time = end_time = datetime.timedelta(hours=0)
@@ -201,7 +211,7 @@ class PolicyDatabase(object):
 #     pd = PolicyDatabase(host, user, password, database)
 #     # temp riieiw934w9291o3992sk
 #     # print(pd.access_device('ALF0OCK6IC', '0', 'platypus_0', 'smart_things', 'toggle_switch', ["Hue white lamp 1"]))
-#     print(pd.access_device('ALF0OCK6IC', '00:17:88:6c:d6:d3', 'platypus_0', 'philapi', 'light_switch', [False, 1]))
+#     print(pd.access_device('KBKAMUKDZ1', '00:17:88:6c:d6:d3', 'platypus_194', 'philapi', 'light_switch', [False, 1]))
 #     #pd.is_canary("file_read")
 #     # pd.undo_device_blacklist('test_user_uuid_2')
 #     # pd.set_policy('philapi', '00:17:88:6c:d6:d3', 'show_hues', '', '06:00', '05:59')
