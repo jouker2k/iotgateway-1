@@ -104,10 +104,10 @@ class PolicyDatabase(object):
         cursor = self.connection.cursor()
 
         today = time.strftime('%Y-%m-%d')
-        query = cursor.execute("SELECT date_time FROM access_log WHERE DATE(date_time) LIKE '%s' AND (user_uuid = '%s' OR channel_name = '%s') AND status LIKE '%s'" % (today, uuid, channel, "rejected"))
+        query = cursor.execute("SELECT date_time FROM access_log WHERE DATE(date_time) LIKE '%s' AND (user_uuid = '%s' OR channel_name = '%s') AND module_name = '%s' AND status LIKE '%s'" % (today, uuid, channel, module_name, "rejected"))
         rejected = cursor.fetchall()
 
-        if len(rejected) >= 4:
+        if len(rejected) >= 3:
             return [False, "today_over_rejected"]
 
         time_now = time.strftime('%H:%M:%S')
