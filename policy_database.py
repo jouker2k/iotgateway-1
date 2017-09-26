@@ -103,6 +103,13 @@ class PolicyDatabase(object):
     def access_device(self, channel, mac_address, uuid, module_name, requested_function, parameters):
         cursor = self.connection.cursor()
 
+        today = time.strftime('%Y-%m-%d')
+        query = cursor.execute("SELECT date_time FROM access_log WHERE DATE(date_time) LIKE '%s' AND (user_uuid = '%s' OR channel_name = '%s') AND status LIKE '%s'" % (today, uuid, channel, "rejected"))
+        rejected = cursor.fetchall()
+
+        if len(rejected) >= 3:
+            return [False, "today_over_rejected"]
+
         # Before anything first check if corresponding channel has correct UUID requesting:
         query = cursor.execute("SELECT user_uuid FROM gateway_subscriptions WHERE channel = '%s' and user_uuid = '%s'" % (channel, uuid))
         valid_uuid_for_channel = cursor.fetchall()
@@ -156,12 +163,12 @@ class PolicyDatabase(object):
                 return [False, "time_rejected"]
 
         t = datetime.datetime.now()
-        time = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
+        now_delta = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
         access = False
         if end_time <= start_time:
-            access = start_time <= time or end_time >= time
+            access = start_time <= now_delta or end_time >= now_delta
         else:
-            access = start_time <= time <= end_time
+            access = start_time <= now_delta <= end_time
 
         print("Timeframe for {} function on {} module: {}–{}".format(requested_function, module_name, start_time, end_time))
         if access:
@@ -180,7 +187,7 @@ class PolicyDatabase(object):
 #
 #     pd = PolicyDatabase(host, user, password, database)
 #     # temp riieiw934w9291o3992sk
-#     print(pd.access_device('ALF0OCK6IC', '0', 'platypus_0', 'smart_things', 'toggle_switch', ["Hue white lamp 1"]))
+#     # print(pd.access_device('ALF0OCK6IC', '0', 'platypus_0', 'smart_things', 'toggle_switch', ["Hue white lamp 1"]))
 #     print(pd.access_device('ALF0OCK6IC', '00:17:88:6c:d6:d3', 'platypus_0', 'philapi', 'light_switch', [False, 1]))
 #     #pd.is_canary("file_read")
 #     # pd.undo_device_blacklist('test_user_uuid_2')
