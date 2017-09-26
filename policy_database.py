@@ -107,8 +107,21 @@ class PolicyDatabase(object):
         query = cursor.execute("SELECT date_time FROM access_log WHERE DATE(date_time) LIKE '%s' AND (user_uuid = '%s' OR channel_name = '%s') AND status LIKE '%s'" % (today, uuid, channel, "rejected"))
         rejected = cursor.fetchall()
 
-        if len(rejected) >= 3:
+        if len(rejected) >= 4:
             return [False, "today_over_rejected"]
+
+        time_now = time.strftime('%H:%M:%S')
+        query = cursor.execute("SELECT TIME(date_time) FROM access_log WHERE user_uuid = '%s' OR channel_name = '%s' AND status LIKE '%s' ORDER  BY date_time DESC LIMIT 1;" % (uuid, channel, "rejected"))
+        last_access = cursor.fetchall()
+
+        if last_access:
+            t = datetime.datetime.now()
+            time_now_delta = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
+            accessed_last = time_now_delta - last_access[0][0]
+            if (accessed_last) < timedelta(minutes=1):
+                return [False, "rejected_too_soon"]
+            else:
+                 print("PolicyDatabase: Last access: {}".format(accessed_last))
 
         # Before anything first check if corresponding channel has correct UUID requesting:
         query = cursor.execute("SELECT user_uuid FROM gateway_subscriptions WHERE channel = '%s' and user_uuid = '%s'" % (channel, uuid))
