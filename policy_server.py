@@ -115,11 +115,10 @@ class PolicyServer(SubscribeCallback):
                         elif action == "email_admins_blacklist":
                             self.pd.device_access_blacklist("*", "", msg['request']['user_uuid'])
 
-                else:
-                    print("Not received expected parameters.")
+                elif 'user_uuid' not in msg['request']:
+                    self.publish_message(message.channel, {"error": "must provide user uuid", "channel": msg['channel']})
                     # Receiver hasn't provided full information
                     # Maybe make this can be negligible for some parameters like module_name, as device_id should be enough
-                    pass
 
             else:
                 self.publish_message(message.channel, {"access": "granted", "channel": msg['channel'], "request": msg['request']})

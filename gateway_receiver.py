@@ -203,7 +203,7 @@ class Receiver(SubscribeCallback):
                 pass
 
         elif message.channel != "policy":
-            if 'enquiry' in msg and msg['enquiry'] is True:
+            if 'enquiry' in msg.keys() and msg['enquiry'] is True:
                 if 'module_name' in msg:
                     module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
 
@@ -250,7 +250,7 @@ class Receiver(SubscribeCallback):
 
                     self.publish_request(message.channel, {"enquiry": {"modules": modules_to_show}})
 
-            elif 'enquiry' in msg and msg['enquiry'] is False:
+            elif 'enquiry' in msg.keys() and msg['enquiry'] is False:
                 if 'requested_function' in msg:
                     if 'module_name' in msg:
                         module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
@@ -264,10 +264,17 @@ class Receiver(SubscribeCallback):
 
                                 self.delete_defaults(method_requested, method_args)
                                 if isinstance(msg['parameters'], list) and len(msg['parameters']) == len(method_args):
-                                    get_mac = getattr(module, 'get_mac')
-                                    mac_address = get_mac()
 
-                                    self.publish_request("policy", {"channel": message.channel, "mac_address": mac_address, "request": msg})
+                                    mac_address = ''
+                                    try:
+                                        get_mac = getattr(module, 'get_mac')
+                                        mac_address = get_mac()
+                                    except:
+                                        mac_address = '0'
+                                        print("GatewayReceiver: Module {} does not have get_mac(), searching with 0 instead".format(msg['module_name']))
+
+                                    finally:
+                                        self.publish_request("policy", {"channel": message.channel, "mac_address": mac_address, "request": msg})
 
                                 else:
                                     self.publish_request(message.channel, {"error": "Your request's parameters must be an array and match required parameters of the method."})
@@ -287,7 +294,7 @@ class Receiver(SubscribeCallback):
             #         self.publish_request(message.channel, error_msg)
 
         elif message.channel == "policy":
-            if "access" in msg:
+            if "access" in msg.keys():
 
                 if msg["access"] == "granted":
                     print("Access on {} granted, with the request: {}".format(msg['channel'], msg['request']))
@@ -301,19 +308,20 @@ class Receiver(SubscribeCallback):
                     print("Access on {} rejected, with the request: {}".format(msg['channel'], msg['request']))
                     self.publish_request(msg['channel'], {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": "rejected"})
 
-            elif "canary_breach" in msg:
+            elif "canary_breach" in msg.keys():
                 if msg["canary_breach"]["action"] == "shutdown_now":
                     print("GatewayReceiver: Received shutdown command.")
                     self.publish_request(self.admin_channel, {"command": "shutdown_now"})
                     os._exit(1)
 
-            elif "canary" in msg:
+            elif "canary" in msg.keys():
                 paste_id = msg['canary']['pastebin'].split("/")[-1]
                 function_content = self.pastebin.parse_paste(paste_id)
                 with open('./modules/{}.py'.format(msg['canary']['canary_name']),'w') as f:
                     f.write(function_content)
 
-            pass
+            elif "error" in msg.keys():
+                self.publish_request(msg['channel'], {"error": msg['error']})
 
 if __name__ == "__main__":
     receiver = Receiver()
