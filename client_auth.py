@@ -99,12 +99,16 @@ class Client(SubscribeCallback):
                     method_chosen = input("Choose a method to call {}: ".format(module_methods))
                     print("You chose: {}".format(method_chosen))
 
-                    print("In corresponding order, please enter the parameters in an array below, leave blank if none:")
-                    params = input()
+                    while True:
+                        print("In corresponding order, please enter the parameters in an array below, leave blank if none:")
+                        params = input()
 
-                    if params:
-                        self.device_request(self.channel, False, message.message['enquiry']['module_name'], method_chosen, ast.literal_eval(params))
-                        pass
+                        if params:
+                            self.device_request(self.channel, False, message.message['enquiry']['module_name'], method_chosen, ast.literal_eval(params))
+                            break
+                        else:
+                            print("Please enter parameters.. If blank use []")
+
                 except:
                     pass
 
@@ -116,4 +120,4 @@ class Client(SubscribeCallback):
             print(message.message)
 
 if __name__ == "__main__":
-    client = Client("platypus_165")
+    client = Client("platypus_156")
