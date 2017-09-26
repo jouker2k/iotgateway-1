@@ -28,7 +28,7 @@ from exceptions import exceptions
 from modules import *
 from modules import help
 import gateway_database
-import policy_server                    # TODO: Temporary
+#from PolicyServer import policy_server
 
 from pubnub.enums import PNStatusCategory
 from pubnub.callbacks import SubscribeCallback
@@ -84,7 +84,7 @@ class Receiver(SubscribeCallback):
         self.subscribe_channels(["policy", "gateway_global", self.admin_channel])
 
         self.pastebin = PasteFetcher.PasteFetcher()
-        ps = policy_server.PolicyServer(self.gdatabase)                                                 # TODO: Temporary
+        #ps = policy_server.PolicyServer(self.gdatabase)                                                 # TODO: Temporary
 
     def subscribe_channels(self, channel_name):
         self.pubnub.subscribe().channels(channel_name).with_presence().execute()

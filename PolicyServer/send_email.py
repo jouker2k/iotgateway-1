@@ -32,7 +32,7 @@ class Alert:
 
             msg['From'] = self.MY_ADDRESS
             msg['To'] = email[1]
-            msg['Subject'] = "This is TEST"
+            msg['Subject'] = "WARNING: Canary function used!"
 
             msg.attach(MIMEText(message, 'plain'))
 

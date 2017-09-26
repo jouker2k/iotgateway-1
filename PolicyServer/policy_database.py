@@ -26,6 +26,26 @@ class PolicyDatabase(object):
             print("Error {}: {}".format(e.args[0], e.args[1]))
             sys.exit(1)
 
+    def pub_key(self):
+        cursor = self.connection.cursor()
+        row = cursor.execute("SELECT pub_key FROM gateway_keys")
+        rows = cursor.fetchall()
+
+        if len(rows) > 1:
+            print("GatewayDatabaseWarning: There is more than one pub_key key set!")
+
+        return rows[0][0]
+
+    def sub_key(self):
+        cursor = self.connection.cursor()
+        row = cursor.execute("SELECT sub_key FROM gateway_keys")
+        rows = cursor.fetchall()
+
+        if len(rows) > 1:
+            print("GatewayDatabaseWarning: There is more than one sub_key key set!")
+
+        return rows[0][0]
+    
     def get_admin_emails(self):
         cursor = self.connection.cursor()
         row = cursor.execute("SELECT * FROM administrator_emails")
@@ -120,7 +140,7 @@ class PolicyDatabase(object):
             accessed_last = time_now_delta - last_access[0][0]
             if (accessed_last) < timedelta(minutes=1):
                 return [False, "rejected_too_soon"]
-            
+
         # Before anything first check if corresponding channel has correct UUID requesting:
         query = cursor.execute("SELECT user_uuid FROM gateway_subscriptions WHERE channel = '%s' and user_uuid = '%s'" % (channel, uuid))
         valid_uuid_for_channel = cursor.fetchall()

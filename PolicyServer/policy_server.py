@@ -18,11 +18,13 @@ def my_publish_callback(envelope, status):
 
 class PolicyServer(SubscribeCallback):
 
-    def __init__(self, gdatabase):
+    def __init__(self, host, user, password, database):
+        self.pd = policy_database.PolicyDatabase(host, user, password, database)
+
         self.pnconfig = PNConfiguration()
         self.pnconfig.uuid = 'GP'
-        self.pnconfig.subscribe_key = gdatabase.sub_key()
-        self.pnconfig.publish_key = gdatabase.pub_key()
+        self.pnconfig.subscribe_key = self.pd.sub_key()
+        self.pnconfig.publish_key = self.pd.pub_key()
         self.pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
         self.pnconfig.ssl = True
         self.pnconfig.subscribe_timeout = self.pnconfig.connect_timeout = self.pnconfig.non_subscribe_timeout = 9^99
@@ -33,7 +35,7 @@ class PolicyServer(SubscribeCallback):
         self.pubnub.add_listener(self)
         self.pubnub.subscribe().channels('policy').execute()
 
-        self.pd = policy_database.PolicyDatabase(gdatabase.host, gdatabase.user, gdatabase.password, gdatabase.database)
+
         self.se = send_email.Alert(self.pd)
 
     def presence(self, pubnub, presence):
@@ -127,10 +129,9 @@ class PolicyServer(SubscribeCallback):
         self.pubnub.publish().channel(channel).message(response).async(my_publish_callback)
 
 if __name__ == "__main__":
-    # temp - testing purposes only
-    import gateway_database
+    host = 'ephesus.cs.cf.ac.uk'
+    user = 'c1312433'
     password = input("Database password: ")
-    gdatabase = gateway_database.GatewayDatabase(host = 'ephesus.cs.cf.ac.uk', user = 'c1312433', password = password, database = 'c1312433')
+    database = 'c1312433'
 
-    print(getattr(gdatabase, 'policy_key'))
-    ps = PolicyServer(gdatabase)
+    ps = PolicyServer(host, user, password, database)
