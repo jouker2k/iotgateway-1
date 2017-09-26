@@ -7,7 +7,6 @@ from pubnub.pubnub import PubNub
 from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
 
 import sys, os
-from helpers import module_methods
 
 import send_email
 
