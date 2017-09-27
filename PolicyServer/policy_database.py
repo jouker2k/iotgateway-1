@@ -55,7 +55,7 @@ class PolicyDatabase(object):
             print("GatewayDatabaseWarning: There is more than one sub_key key set!")
 
         return rows[0][0]
-    
+
     def get_admin_emails(self):
         cursor = self.connection.cursor()
         row = cursor.execute("SELECT * FROM administrator_emails")
@@ -141,7 +141,7 @@ class PolicyDatabase(object):
             return [False, "today_over_rejected"]
 
         time_now = time.strftime('%H:%M:%S')
-        query = cursor.execute("SELECT TIME(date_time) FROM access_log WHERE user_uuid = '%s' OR channel_name = '%s' AND status LIKE '%s' ORDER  BY date_time DESC LIMIT 1;" % (uuid, channel, "rejected"))
+        query = cursor.execute("SELECT TIME(date_time), access_id FROM access_log WHERE (user_uuid = '%s' OR channel_name = '%s') AND status LIKE 'rejected' ORDER  BY date_time DESC LIMIT 1;" % (uuid, channel))
         last_access = cursor.fetchall()
 
         if last_access:

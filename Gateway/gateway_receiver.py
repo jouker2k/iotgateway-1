@@ -305,10 +305,10 @@ class Receiver(SubscribeCallback):
                     method_requested = getattr(module, msg['request']['requested_function'])
                     result = method_requested(*msg['request']['parameters'])
 
-                    self.publish_request(msg['channel'], {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": result})
+                    self.publish_request(msg['channel'], {"Gateway": {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": result}})
 
                 else:
-                    self.publish_request(msg['channel'], {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": "rejected"})
+                    self.publish_request(msg['channel'], {"Gateway": {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": "rejected"}})
 
             elif "canary_breach" in msg.keys():
                 if msg["canary_breach"]["action"] == "shutdown_now":
