@@ -62,7 +62,7 @@ class Client(SubscribeCallback):
             print("Client: Reconnected.")
 
     def message(self, pubnub, message):
-        msg = message.message
+        msg = message.message["Gateway"] if "Gateway" in message.message else message.message
 
         if not self.authed:
             uuid_hash = hashlib.new("sha3_512")
@@ -127,4 +127,4 @@ class Client(SubscribeCallback):
             print(message.message)
 
 if __name__ == "__main__":
-    client = Client("platypus_283")
+    client = Client("platypus_288")

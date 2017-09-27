@@ -202,7 +202,7 @@ class Receiver(SubscribeCallback):
                 self.publish_request(self.admin_channel, {"error": "module_name, pastebin and installation_commands must be included as keys", "request": message.message})
                 pass
 
-        elif message.channel != "policy" and "error" not in msg.keys():
+        elif message.channel != "policy" and "error" not in msg:
 
             try:
                 if 'enquiry' in msg.keys() and msg['enquiry'] is True:
@@ -226,13 +226,13 @@ class Receiver(SubscribeCallback):
 
                                 enquiry_response = {"enquiry": {"module_name": msg['module_name'], "module_methods": dictionary_of_functions}}
 
-                                self.publish_request(message.channel, enquiry_response)
+                                self.publish_request(message.channel, {"Gateway": enquiry_response})
 
                             except KeyError:
-                                self.publish_request(message.channel, {"error": "Module {} or function {} not found".format(msg['module_name'], msg['module_methods'])})
+                                self.publish_request(message.channel, {"Gateway": {"error": "Module {} or function {} not found".format(msg['module_name'], msg['module_methods'])}})
 
                         else:
-                            self.publish_request(message.channel, {"error": "Module {} was not found.".format(msg['module_name'])})
+                            self.publish_request(message.channel, {"Gateway":{"error": "Module {} was not found.".format(msg['module_name'])}})
 
                     # Else if no module name supplied just show list of them available.
                     elif 'module_name' not in msg and msg['enquiry'] is True:
@@ -248,7 +248,7 @@ class Receiver(SubscribeCallback):
 
                         #modules_to_show =  list(set(module_list) - set(canaries_for_uuid))
 
-                        self.publish_request(message.channel, {"enquiry": {"modules": modules_to_show}})
+                        self.publish_request(message.channel, {"Gateway": {"enquiry": {"modules": modules_to_show}}})
                 # else:
                 #     self.publish_request(message.channel, {"error": "Enquiry must be provided in the request."})
 
@@ -279,10 +279,10 @@ class Receiver(SubscribeCallback):
                                             self.publish_request("policy", {"channel": message.channel, "mac_address": mac_address, "request": msg})
 
                                     else:
-                                        self.publish_request(message.channel, {"error": "Your request's parameters must be an array and match required parameters of the method."})
+                                        self.publish_request(message.channel, {"Gateway": {"error": "Your request's parameters must be an array and match required parameters of the method."}})
 
                                 except AttributeError:
-                                    self.publish_request(message.channel, {"error": "Module {} has no function {}".format(msg['module_name'], msg['requested_function'])})
+                                    self.publish_request(message.channel, {"Gateway": {"error": "Module {} has no function {}".format(msg['module_name'], msg['requested_function'])}})
 
                         else:
                             print("{}: Error no module name supplied even when not an enquiry".format(message.channel)) # tidy up later
@@ -291,7 +291,7 @@ class Receiver(SubscribeCallback):
                         raise exceptions.BadFormat("Requested function must be in non-enquiry request.")
 
             except exceptions.BadFormat as error:
-                error_msg = {'error': str(error), "correct_format": {"user_uuid": "", "enquiry": "", "module_name": "", "requested_function": "", "param": ""}}
+                error_msg = {"Gateway": {'error': str(error), "correct_format": {"user_uuid": "", "enquiry": "", "module_name": "", "requested_function": "", "param": ""}}}
                 self.publish_request(message.channel, error_msg)
 
             except Exception as e:
