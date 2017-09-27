@@ -110,7 +110,7 @@ class Auth(SubscribeCallback):
                 elif presence.channel not in self.gateway_channels and presence.uuid == presence.channel: # uuid channel presence
                     print('[2] REQUIRED USER ({}) HAS JOINED THE UUID CHANNEL ({}).'.format(presence.uuid, presence.channel))
                     users_auth_key = idgen.id_generator()
-                    channelName = idgen.id_generator()
+                    channelName = "SECURE." + idgen.id_generator()
 
                     # Send auth key to user
                     pubnub.publish().channel(presence.uuid).message(

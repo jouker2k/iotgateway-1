@@ -99,7 +99,7 @@ class PolicyServer(SubscribeCallback):
                     status = "granted" if access[0] is True else "rejected: {}".format(access[1])
 
                     self.publish_message(message.channel, {"access": status, "channel": msg['channel'], "request": msg['request']})
-                    self.pd.access_log(msg['request']['user_uuid'], msg['channel'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'], status)
+                    self.pd.access_log(msg['request']['ip'], msg['request']['user_uuid'], msg['channel'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'], status)
 
                     print("PolicyServer: Access on {} by {} logged as {}".format(msg['channel'], msg['request']['user_uuid'], status))
 

@@ -26,6 +26,16 @@ class PolicyDatabase(object):
             print("Error {}: {}".format(e.args[0], e.args[1]))
             sys.exit(1)
 
+    def policy_key(self):
+        cursor = self.connection.cursor()
+        row = cursor.execute("SELECT auth_key_policy FROM gateway_keys")
+        rows = cursor.fetchall()
+
+        if len(rows) > 1:
+            print("GatewayDatabaseWarning: There is more than one gateway receiver key set!")
+
+        return rows[0][0]
+
     def pub_key(self):
         cursor = self.connection.cursor()
         row = cursor.execute("SELECT pub_key FROM gateway_keys")
@@ -97,12 +107,12 @@ class PolicyDatabase(object):
         cursor = self.connection.cursor()
         cursor.execute("INSERT INTO device_access_blacklisted(module_name, requested_function, user_uuid) VALUES('%s','%s','%s');" % (module_name, requested_function, user_uuid))
 
-    def access_log(self, user_uuid, channel_name, module_name, method_name, parameters, status):
+    def access_log(self, ip, user_uuid, channel_name, module_name, method_name, parameters, status):
         cursor = self.connection.cursor()
         parameters = str(parameters).replace("'", "''")
         date_time = time.strftime('%Y-%m-%d %H:%M:%S')
 
-        cursor.execute("INSERT INTO access_log(date_time, user_uuid, channel_name, module_name, method_name, parameters, status) VALUES('%s','%s','%s','%s','%s','%s','%s');" % (date_time, user_uuid, channel_name, module_name, method_name, parameters, status))
+        cursor.execute("INSERT INTO access_log(ip_address, date_time, user_uuid, channel_name, module_name, method_name, parameters, status) VALUES('%s', '%s','%s','%s','%s','%s','%s','%s');" % (ip, date_time, user_uuid, channel_name, module_name, method_name, parameters, status))
 
     def is_canary(self, canary_name):
         cursor = self.connection.cursor()
