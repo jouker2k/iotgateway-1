@@ -2,6 +2,7 @@ import pymysql
 import datetime
 from datetime import timedelta
 import time
+import hashlib
 
 '''
 DB Columns?
@@ -15,6 +16,11 @@ DB Columns?
 
 # TODO Perhaps allow creating Canary from here, so we make canary_entry() from here (see GatewayDatabase) then it sends msg to receiver to fulfil the canary?
 # Perhaps even send python code in a pastebin link to parse and save as a file – fully remote.
+
+def sha3(x):
+    shahash = hashlib.new("sha3_512")
+    encode = shahash.update((x).encode("UTF-8"))
+    return shahash.hexdigest()
 
 class PolicyDatabase(object):
     def __init__(self, host, user, password, database):
@@ -108,6 +114,7 @@ class PolicyDatabase(object):
         cursor.execute("INSERT INTO device_access_blacklisted(module_name, requested_function, user_uuid) VALUES('%s','%s','%s');" % (module_name, requested_function, user_uuid))
 
     def access_log(self, ip, user_uuid, channel_name, module_name, method_name, parameters, status):
+        user_uuid = sha3(user_uuid)
         cursor = self.connection.cursor()
         parameters = str(parameters).replace("'", "''")
         date_time = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -131,17 +138,19 @@ class PolicyDatabase(object):
         print("GatewayDatabase: Canary file {} created at security level {}.".format(file_name, canary_level))
 
     def access_device(self, channel, mac_address, uuid, module_name, requested_function, parameters):
+        hashed_uuid = sha3(uuid)
+
         cursor = self.connection.cursor()
 
         today = time.strftime('%Y-%m-%d')
-        query = cursor.execute("SELECT date_time FROM access_log WHERE DATE(date_time) LIKE '%s' AND (user_uuid = '%s' OR channel_name = '%s') AND module_name = '%s' AND status LIKE '%s'" % (today, uuid, channel, module_name, "rejected"))
+        query = cursor.execute("SELECT date_time FROM access_log WHERE DATE(date_time) LIKE '%s' AND (user_uuid = '%s' OR channel_name = '%s') AND module_name = '%s' AND status LIKE '%s'" % (today, hashed_uuid, channel, module_name, "rejected"))
         rejected = cursor.fetchall()
 
         if len(rejected) >= 3:
             return [False, "today_over_rejected"]
 
         time_now = time.strftime('%H:%M:%S')
-        query = cursor.execute("SELECT TIME(date_time), access_id FROM access_log WHERE (user_uuid = '%s' OR channel_name = '%s') AND status LIKE 'rejected' ORDER  BY date_time DESC LIMIT 1;" % (uuid, channel))
+        query = cursor.execute("SELECT TIME(date_time), access_id FROM access_log WHERE (user_uuid = '%s' OR channel_name = '%s') AND status LIKE 'rejected' ORDER  BY date_time DESC LIMIT 1;" % (hashed_uuid, channel))
         last_access = cursor.fetchall()
 
         if last_access:
@@ -152,7 +161,7 @@ class PolicyDatabase(object):
                 return [False, "rejected_too_soon"]
 
         # Before anything first check if corresponding channel has correct UUID requesting:
-        query = cursor.execute("SELECT user_uuid FROM gateway_subscriptions WHERE channel = '%s' and user_uuid = '%s'" % (channel, uuid))
+        query = cursor.execute("SELECT user_uuid FROM gateway_subscriptions WHERE channel = '%s' and user_uuid = '%s'" % (channel, hashed_uuid))
         valid_uuid_for_channel = cursor.fetchall()
         canary = self.is_canary(module_name)
         canary_breach_level = canary[1]

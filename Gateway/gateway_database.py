@@ -1,4 +1,6 @@
 import pymysql
+from helpers import sha3
+import hashlib
 
 class GatewayDatabase(object):
     def __init__(self, host, user, password, database):
@@ -91,12 +93,16 @@ class GatewayDatabase(object):
         print("GatewayDatabase: UUID {} blacklisted due to violation on {} channel".format(uuid, channel_name))
 
     def gateway_subscriptions(self, channel_name, uuid):
+        uuid = sha3.hash(uuid)
+
         cursor = self.connection.cursor()
         cursor.execute("INSERT INTO gateway_subscriptions(channel, user_uuid) VALUES('%s','%s');" % (channel_name, uuid))
 
         print("GatewayDatabase: New subscription added to channel {} containing user {}".format(channel_name, uuid))
 
     def gateway_subscriptions_remove(self, channel_name, uuid):
+        uuid = sha3.hash(uuid)
+
         cursor = self.connection.cursor()
         cursor.execute("DELETE FROM gateway_subscriptions WHERE channel = '%s' AND user_uuid = '%s'" % (channel_name, uuid))
 
