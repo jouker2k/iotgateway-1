@@ -80,7 +80,7 @@ class Receiver(SubscribeCallback):
 
         print("GatewayReceiver: Subscribing to the Policy server and Gateway global feed..")
         self.pubnub.grant().channels(["policy"]).auth_keys([self.gdatabase.receivers_key(), self.gdatabase.policy_key()]).read(True).write(True).manage(True).ttl(0).sync()                # TODO: Temporary
-        self.pubnub.grant().channels(["gateway_global", self.admin_channel]).read(True).write(True).manage(True).sync()
+        self.pubnub.grant().channels(["gateway_global", "embedded_devices", self.admin_channel]).read(True).write(True).manage(True).sync()
         self.subscribe_channels(["policy", "gateway_global", self.admin_channel])
 
         self.pastebin = PasteFetcher.PasteFetcher()
