@@ -78,13 +78,16 @@ class Receiver(SubscribeCallback):
         if subscriptions:
             self.subscribe_channels(subscriptions)
 
+        self.default_channels = ["policy", "gateway_global", self.admin_channel, "embedded_devices"]
+
         print("GatewayReceiver: Subscribing to the Policy server and Gateway global feed..")
-        self.pubnub.grant().channels(["policy"]).auth_keys([self.gdatabase.receivers_key(), self.gdatabase.policy_key()]).read(True).write(True).manage(True).ttl(0).sync()                # TODO: Temporary
-        self.pubnub.grant().channels(["gateway_global", "embedded_devices", self.admin_channel]).read(True).write(True).manage(True).sync()
-        self.subscribe_channels(["policy", "gateway_global", self.admin_channel])
+        self.pubnub.grant().channels(self.default_channels[0]).auth_keys([self.gdatabase.receivers_key(), self.gdatabase.policy_key()]).read(True).write(True).manage(True).ttl(0).sync()
+        self.pubnub.grant().channels(self.default_channels[1:]).read(True).write(True).manage(True).sync()
+
+        self.subscribe_channels(self.default_channels[:-1])
 
         self.pastebin = PasteFetcher.PasteFetcher()
-        #ps = policy_server.PolicyServer(self.gdatabase)                                                 # TODO: Temporary
+        #ps = policy_server.PolicyServer(self.gdatabase)
 
     def subscribe_channels(self, channel_name):
         self.pubnub.subscribe().channels(channel_name).with_presence().execute()
@@ -102,7 +105,7 @@ class Receiver(SubscribeCallback):
     def status(self, pubnub, status):
         if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
             print('GatewayReceiver: Unexpectedly disconnected.')
-            pubnub.publish().channel('gateway_auth').message({"Global_Message":"GatewayReceiver: Unexpectedly disconnected."}).async(my_publish_callback)
+            pubnub.publish().channel('gateway_global').message({"Global_Message":"GatewayReceiver: Unexpectedly disconnected."}).async(my_publish_callback)
 
         elif status.category == PNStatusCategory.PNConnectedCategory:
             print('GatewayReceiver: Connected.')
@@ -202,7 +205,24 @@ class Receiver(SubscribeCallback):
                 self.publish_request(self.admin_channel, {"error": "module_name, pastebin and installation_commands must be included as keys", "request": message.message})
                 pass
 
-        elif message.channel != "policy" and "error" not in msg:
+        elif message.channel not in self.default_channels and "error" not in msg:
+
+            # Check if more than 1 person in channel + determine their UUID
+            envelope = pubnub.here_now().channels(message.channel).include_uuids(True).sync()
+
+            users = envelope.result.channels[0].occupants
+            users_in_channel = envelope.result.total_occupancy
+            user_uuid = None
+
+            if users_in_channel > 2:
+                self.publish_request(message.channel, {"Gateway":{"error": "There are multiple users in this channel"}})
+                return
+
+            else:
+                for occupant in users:
+                    if occupant.uuid != self.uuid:
+                        user_uuid = occupant.uuid # Going to take the user's UUID who is in the channel and use it for verification.
+                        break
 
             try:
                 if 'enquiry' in msg.keys() and msg['enquiry'] is True:
@@ -215,7 +235,6 @@ class Receiver(SubscribeCallback):
                                 methods = module_methods.find(msg['module_name']) # Gets module's methods (cannot be inside a class)
 
                                 module = sys.modules['modules.' + msg['module_name']]
-                                # TODO: CHECKING HERE IF MODULE/FUNCTIONS EXIST, IF NOT, SEND PUB
                                 dictionary_of_functions = {}
                                 for method in methods:
                                     function = getattr(module, method)
@@ -237,8 +256,7 @@ class Receiver(SubscribeCallback):
                     # Else if no module name supplied just show list of them available.
                     elif 'module_name' not in msg and msg['enquiry'] is True:
                         module_list = lm.list_modules()
-                        uuid = self.gdatabase.get_uuid_from_channel(message.channel)
-                        canaries_for_uuid = self.gdatabase.hide_canaries(uuid) # We retrieve the canaries that are not meant for the users then hide them (below)
+                        canaries_for_uuid = self.gdatabase.hide_canaries(user_uuid) # We retrieve the canaries that are not meant for the users then hide them (below)
 
                         for canary in canaries_for_uuid: # So don't show any canaries not actually present locally
                             if canary not in module_list:
@@ -276,6 +294,7 @@ class Receiver(SubscribeCallback):
                                             print("GatewayReceiver: Module {} does not have get_mac(), searching with 0 instead".format(msg['module_name']))
 
                                         finally:
+                                            msg["user_uuid"] = user_uuid
                                             self.publish_request("policy", {"channel": message.channel, "mac_address": mac_address, "request": msg})
 
                                     else:

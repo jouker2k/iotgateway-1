@@ -51,7 +51,7 @@ class Client(SubscribeCallback):
         return(self.publish_request(channel, {"enquiry": True, "module_name": module}))
 
     def device_request(self, channel, module_name = None, requested_function = None, parameters = False):
-        jsonmsg = {"user_uuid": self.pnconfig.uuid, "enquiry": False, "module_name": module_name, "requested_function": requested_function, "parameters": parameters}
+        jsonmsg = {"enquiry": False, "module_name": module_name, "requested_function": requested_function, "parameters": parameters}
         return(self.publish_request(channel, jsonmsg))
 
     def status(self, pubnub, status):
@@ -126,4 +126,4 @@ class Client(SubscribeCallback):
             print(message.message)
 
 if __name__ == "__main__":
-    client = Client("platypus_320")
+    client = Client("platypus_331")
