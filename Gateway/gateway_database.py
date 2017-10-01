@@ -27,6 +27,16 @@ class GatewayDatabase(object):
 
         return rows[0][0]
 
+    def embedded_devices_key(self):
+        cursor = self.connection.cursor()
+        row = cursor.execute("SELECT embedded_devices_key FROM gateway_keys")
+        rows = cursor.fetchall()
+
+        if len(rows) > 1:
+            print("GatewayDatabaseWarning: There is more than one gateway receiver key set!")
+
+        return rows[0][0]
+    
     def get_uuid_from_channel(self, channel):
         cursor = self.connection.cursor()
         row = cursor.execute("SELECT user_uuid FROM gateway_subscriptions WHERE channel = '%s';" % (channel))

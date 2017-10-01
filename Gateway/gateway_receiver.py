@@ -320,6 +320,9 @@ class Receiver(SubscribeCallback):
             if "access" in msg.keys():
 
                 if msg["access"] == "granted":
+                    if msg['request']['module_name'] == "controlpi":
+                        msg['request']['parameters'] = msg['request']['parameters'] + [self.gdatabase.embedded_devices_key()]
+
                     module = sys.modules['modules.' + msg['request']['module_name']]
                     method_requested = getattr(module, msg['request']['requested_function'])
                     result = method_requested(*msg['request']['parameters'])
