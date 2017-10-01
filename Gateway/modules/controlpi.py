@@ -18,13 +18,13 @@ pubnub = PubNub(pnconfig)
 
 my_listener = SubscribeListener()
 pubnub.add_listener(my_listener)
-pubnub.subscribe().channels('embedded_devices').execute()
-my_listener.wait_for_connect()
 
 def LED_on(colour, auth_key = None):
     pnconfig.auth_key = auth_key
     pubnub = PubNub(pnconfig)
     req_id = idgen.id_generator(size = 10)
+    pubnub.subscribe().channels('embedded_devices').execute()
+    my_listener.wait_for_connect()
 
     pubnub.publish().channel('embedded_devices').message({"request_id": req_id, "embedded_device": "led", "module": "led", "function": "on", "parameters": [colour]}).sync()
     publish = my_listener.wait_for_message_on('embedded_devices')
@@ -36,6 +36,8 @@ def LED_off(colour, auth_key = None):
     pnconfig.auth_key = auth_key
     pubnub = PubNub(pnconfig)
     req_id = idgen.id_generator(size = 10)
+    pubnub.subscribe().channels('embedded_devices').execute()
+    my_listener.wait_for_connect()
 
     pubnub.publish().channel('embedded_devices').message({"request_id": req_id, "embedded_device": "led", "module": "led", "function": "off", "parameters": [colour]}).sync()
 
@@ -49,6 +51,8 @@ def blink(colour, number_of_times, auth_key = None):
     pnconfig.auth_key = auth_key
     pubnub = PubNub(pnconfig)
     req_id = idgen.id_generator(size = 10)
+    pubnub.subscribe().channels('embedded_devices').execute()
+    my_listener.wait_for_connect()
 
     pubnub.publish().channel('embedded_devices').message({"request_id": req_id, "embedded_device": "led", "module": "led", "function": "blink", "parameters": [colour, number_of_times]}).sync()
 
