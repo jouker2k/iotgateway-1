@@ -78,6 +78,7 @@ class Client(SubscribeCallback):
 
                 self.channel = msg['channel']
                 self.pnconfig.auth_key = msg['auth_key']
+                self.pnconfig.cipher_key = msg['cipher_key']
                 self.global_channel = msg['global_channel']
 
                 print("Client Connecting to private channel '{}' and global channel '{}'..".format(self.channel, self.global_channel))
@@ -126,4 +127,4 @@ class Client(SubscribeCallback):
             print(message.message)
 
 if __name__ == "__main__":
-    client = Client("platypus_501")
+    client = Client("platypus_591")

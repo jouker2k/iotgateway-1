@@ -36,7 +36,7 @@ class GatewayDatabase(object):
             print("GatewayDatabaseWarning: There is more than one gateway receiver key set!")
 
         return rows[0][0]
-    
+
     def get_uuid_from_channel(self, channel):
         cursor = self.connection.cursor()
         row = cursor.execute("SELECT user_uuid FROM gateway_subscriptions WHERE channel = '%s';" % (channel))
@@ -102,11 +102,11 @@ class GatewayDatabase(object):
 
         print("GatewayDatabase: UUID {} blacklisted due to violation on {} channel".format(uuid, channel_name))
 
-    def gateway_subscriptions(self, channel_name, uuid):
+    def gateway_subscriptions(self, channel_name, uuid, cipher_key):
         uuid = sha3.hash(uuid)
 
         cursor = self.connection.cursor()
-        cursor.execute("INSERT INTO gateway_subscriptions(channel, user_uuid) VALUES('%s','%s');" % (channel_name, uuid))
+        cursor.execute("INSERT INTO gateway_subscriptions(channel, user_uuid, cipher_key) VALUES('%s','%s', '%s');" % (channel_name, uuid, cipher_key))
 
         print("GatewayDatabase: New subscription added to channel {} containing user {}".format(channel_name, uuid))
 
@@ -130,6 +130,23 @@ class GatewayDatabase(object):
     def set_receiver_auth_channel(self, key):
         cursor = self.connection.cursor()
         cursor.execute("UPDATE gateway_keys SET receiver_auth_key = '%s' WHERE id = '%s';" % (key, 1))
+
+    def get_cipher_key(self):
+        cursor = self.connection.cursor()
+        row = cursor.execute("SELECT cipher_key FROM gateway_keys")
+        rows = cursor.fetchall()
+
+        return rows[0][0]
+
+    def get_cipher_key_user(self, uuid):
+        uuid = sha3.hash(uuid)
+
+        cursor = self.connection.cursor()
+        row = cursor.execute("SELECT cipher_key FROM gateway_subscriptions WHERE user_uuid = '%s'" % (uuid))
+        rows = cursor.fetchall()
+
+        return rows[0][0]
+
 
 
 # if __name__ == "__main__":

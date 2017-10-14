@@ -19,21 +19,23 @@ All newly added modules go into /modules/ and are picked up by gateway.
 
 import sys
 import os
+import ast
 import json
 import inspect
 from importlib import util
 
 from helpers import module_methods, default_args, PasteFetcher, id_generator as idgen, list_modules as lm
+from helpers.aes import AESCipher
 from exceptions import exceptions
 from modules import *
 from modules import help
 import gateway_database
 #from PolicyServer import policy_server
 
-from pubnub.enums import PNStatusCategory
-from pubnub.callbacks import SubscribeCallback
-from pubnub.pubnub import PubNub, SubscribeListener
-from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
+from pubnub.enums import PNStatusCategory # To see status of publishes sent - if succeeded etc.
+from pubnub.callbacks import SubscribeCallback # Subscription loop to continoulsy see messages.
+from pubnub.pubnub import PubNub, SubscribeListener # Not a subsciption loop, used for testing
+from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy # Configuration of keys, setting UUID, reconnection procedure
 
 import subprocess
 
@@ -59,18 +61,18 @@ class Receiver(SubscribeCallback):
 
         self.gdatabase.set_receiver_auth_channel(self.admin_channel)
 
-        pnconfig = PNConfiguration()
-        pnconfig.subscribe_key = self.gdatabase.sub_key()
-        pnconfig.publish_key = self.gdatabase.pub_key()
-        pnconfig.secret_key = self.gdatabase.sec_key()
+        self.pnconfig = PNConfiguration()
+        self.pnconfig.subscribe_key = self.gdatabase.sub_key()
+        self.pnconfig.publish_key = self.gdatabase.pub_key()
+        self.pnconfig.secret_key = self.gdatabase.sec_key()
 
-        pnconfig.ssl = True
-        pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
-        pnconfig.subscribe_timeout = pnconfig.connect_timeout = pnconfig.non_subscribe_timeout = 9^99
+        self.pnconfig.ssl = True
+        self.pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
+        self.pnconfig.subscribe_timeout = self.pnconfig.connect_timeout = self.pnconfig.non_subscribe_timeout = 9^99
 
         self.uuid = 'GR'
-        pnconfig.uuid = self.uuid
-        self.pubnub = PubNub(pnconfig)
+        self.pnconfig.uuid = self.uuid
+        self.pubnub = PubNub(self.pnconfig)
         self.pubnub.add_listener(self)
 
         print("Rebuilding subscriptions..")
@@ -125,7 +127,32 @@ class Receiver(SubscribeCallback):
     def message(self, pubnub, message):
         msg = message.message
 
-        if message.channel == self.admin_channel and "success" not in msg.keys() and "error" not in msg.keys():
+        envelope = pubnub.here_now().channels(message.channel).include_uuids(True).sync()
+
+        users = envelope.result.channels[0].occupants
+        users_in_channel = envelope.result.total_occupancy
+        user_uuid = None
+
+        if users_in_channel > 2:
+            self.publish_request(message.channel, {"Gateway":{"error": "There are multiple users in this channel"}})
+            return
+
+        else:
+            for occupant in users:
+                if occupant.uuid != self.uuid:
+                    user_uuid = occupant.uuid # Going to take the user's UUID who is in the channel and use it for verification.
+                    break
+
+        dict_ = {}
+        while type(msg) != type(dict_):
+            self.pnconfig.cipher_key = self.gdatabase.get_cipher_key_user(user_uuid)
+            envelope = pubnub.history().channel(message.channel).count(1).reverse(True).sync()
+            msg_dec = "{"+str(envelope.result.messages[0]).split(" {")[1]
+            msg = ast.literal_eval(json.loads(json.dumps(msg_dec)))
+
+        print(msg)
+
+        if message.channel == self.admin_channel and "success" not in msg and "error" not in msg:
 
             '''
             {"module_name": "x", "pastebin": "y", "installation_commands": "pip ..."}
@@ -208,27 +235,11 @@ class Receiver(SubscribeCallback):
         elif message.channel not in self.default_channels and "error" not in msg:
 
             # Check if more than 1 person in channel + determine their UUID
-            envelope = pubnub.here_now().channels(message.channel).include_uuids(True).sync()
-
-            users = envelope.result.channels[0].occupants
-            users_in_channel = envelope.result.total_occupancy
-            user_uuid = None
-
-            if users_in_channel > 2:
-                self.publish_request(message.channel, {"Gateway":{"error": "There are multiple users in this channel"}})
-                return
-
-            else:
-                for occupant in users:
-                    if occupant.uuid != self.uuid:
-                        user_uuid = occupant.uuid # Going to take the user's UUID who is in the channel and use it for verification.
-                        break
 
             try:
                 if 'enquiry' in msg.keys() and msg['enquiry'] is True:
                     if 'module_name' in msg:
                         module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
-
 
                         if module_found:
                             try:
@@ -295,6 +306,7 @@ class Receiver(SubscribeCallback):
 
                                         finally:
                                             msg["user_uuid"] = user_uuid
+                                            self.pnconfig.cipher_key = self.gdatabase.get_cipher_key()
                                             self.publish_request("policy", {"channel": message.channel, "mac_address": mac_address, "request": msg})
 
                                     else:
@@ -317,7 +329,10 @@ class Receiver(SubscribeCallback):
                 print("GatewayReceiverError: {}".format(e))
 
         elif message.channel == "policy":
+            self.pnconfig.cipher_key = self.gdatabase.get_cipher_key()
+
             if "access" in msg.keys():
+                self.pnconfig.cipher_key = self.gdatabase.get_cipher_key_user(msg['request']['user_uuid'])
 
                 if msg["access"] == "granted":
                     if msg['request']['module_name'] == "controlpi":

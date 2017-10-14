@@ -110,17 +110,18 @@ class Auth(SubscribeCallback):
                 elif presence.channel not in self.gateway_channels and presence.uuid == presence.channel: # uuid channel presence
                     print('[2] REQUIRED USER ({}) HAS JOINED THE UUID CHANNEL ({}).'.format(presence.uuid, presence.channel))
                     users_auth_key = idgen.id_generator()
+                    users_cipher_key = idgen.id_generator(size = 250)
                     channelName = "SECURE." + idgen.id_generator()
 
                     # Send auth key to user
                     pubnub.publish().channel(presence.uuid).message(
-                        {"channel": channelName, "auth_key": users_auth_key, "global_channel": "gateway_global"}).async(my_publish_callback) # Send data over 1-1 channel
+                        {"channel": channelName, "auth_key": users_auth_key, "cipher_key": users_cipher_key, "global_channel": "gateway_global"}).async(my_publish_callback) # Send data over 1-1 channel
 
                     # Grant + Subscribe to new private channel.
                     pubnub.grant().channels([channelName]).auth_keys([users_auth_key, self.receiver_auth_key]).read(True).write(True).manage(True).ttl(0).sync()
                     print("GatewayReceiver: Connecting to private channel {}..".format(channelName))
                     self.gr.subscribe_channels(channelName) # Receiver to subscribe to this private channel for function calls.
-                    self.gd.gateway_subscriptions(channelName, presence.uuid)
+                    self.gd.gateway_subscriptions(channelName, presence.uuid, users_cipher_key)
 
             if presence.event == "timeout" or presence.event == "leave" and presence.uuid not in self.gateway_uuids:
                 print("GatewayAuth: {} event on channel {} by user {}, unsubscribing.".format(presence.event.title(), presence.channel, presence.uuid))

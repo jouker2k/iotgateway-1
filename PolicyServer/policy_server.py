@@ -1,4 +1,4 @@
-import json
+import json, ast
 import policy_database
 
 from pubnub.enums import PNStatusCategory
@@ -25,11 +25,12 @@ class PolicyServer(SubscribeCallback):
         self.pnconfig.uuid = 'GP'
         self.pnconfig.subscribe_key = self.pd.sub_key()
         self.pnconfig.publish_key = self.pd.pub_key()
+        self.pnconfig.cipher_key = self.pd.get_cipher_key()
         self.pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
         self.pnconfig.ssl = True
         self.pnconfig.subscribe_timeout = self.pnconfig.connect_timeout = self.pnconfig.non_subscribe_timeout = 9^99
 
-        self.pnconfig.auth_key = 'policy_key' # later store elsewhere
+        self.pnconfig.auth_key = self.pd.policy_key() # later store elsewhere
         self.pubnub = PubNub(self.pnconfig)
 
         self.pubnub.add_listener(self)
@@ -99,7 +100,8 @@ class PolicyServer(SubscribeCallback):
                     status = "granted" if access[0] is True else "rejected: {}".format(access[1])
 
                     self.publish_message(message.channel, {"access": status, "channel": msg['channel'], "request": msg['request']})
-                    self.pd.access_log(msg['request']['ip'], msg['request']['user_uuid'], msg['channel'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'], status)
+                    # NOTE: Got rid of msg['request']['ip'] as first param here
+                    self.pd.access_log(msg['request']['user_uuid'], msg['channel'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'], status)
 
                     print("PolicyServer: Access on {} by {} logged as {}".format(msg['channel'], msg['request']['user_uuid'], status))
 
