@@ -99,9 +99,9 @@ class Receiver(SubscribeCallback):
         self.pubnub.publish().channel(channel).message(msg_json).async(my_publish_callback)
 
     def presence(self, pubnub, presence):
-        if presence.event == 'leave' or presence.event == 'timeout' and presence.uuid != self.uuid and presence.channel != 'policy':
+        if presence.event == 'leave' and presence.uuid != self.uuid and presence.channel != 'policy':
             print("GatewayReceiver: {} event on channel {} by user {}, unsubscribing.".format(presence.event.title(), presence.channel, presence.uuid))
-            pubnub.unsubscribe().channels(presence.channel).execute()
+            self.pubnub.unsubscribe().channels(presence.channel).execute()
             self.pnconfig.cipher_key = None
             self.gdatabase.gateway_subscriptions_remove(presence.channel, presence.uuid)
 
