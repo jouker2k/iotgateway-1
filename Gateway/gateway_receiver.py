@@ -99,9 +99,10 @@ class Receiver(SubscribeCallback):
         self.pubnub.publish().channel(channel).message(msg_json).async(my_publish_callback)
 
     def presence(self, pubnub, presence):
-        if presence.event == 'leave' and presence.uuid != self.uuid and presence.channel != 'policy':
+        if presence.event == 'leave' or presence.event == 'timeout' and presence.uuid != self.uuid and presence.channel != 'policy':
             print("GatewayReceiver: {} event on channel {} by user {}, unsubscribing.".format(presence.event.title(), presence.channel, presence.uuid))
             pubnub.unsubscribe().channels(presence.channel).execute()
+            self.pnconfig.cipher_key = None
             self.gdatabase.gateway_subscriptions_remove(presence.channel, presence.uuid)
 
     def status(self, pubnub, status):
@@ -125,32 +126,35 @@ class Receiver(SubscribeCallback):
                 array.remove(default_arg)
 
     def message(self, pubnub, message):
-        msg = message.message
 
-        envelope = pubnub.here_now().channels(message.channel).include_uuids(True).sync()
+        try:
+            msg = message.message
 
-        users = envelope.result.channels[0].occupants
-        users_in_channel = envelope.result.total_occupancy
-        user_uuid = None
+            envelope = pubnub.here_now().channels(message.channel).include_uuids(True).sync()
 
-        if users_in_channel > 2:
-            self.publish_request(message.channel, {"Gateway":{"error": "There are multiple users in this channel"}})
+            users = envelope.result.channels[0].occupants
+            users_in_channel = envelope.result.total_occupancy
+            user_uuid = None
+
+            if users_in_channel > 2:
+                self.publish_request(message.channel, {"Gateway":{"error": "There are multiple users in this channel"}})
+                return
+
+            else:
+                for occupant in users:
+                    if occupant.uuid != self.uuid:
+                        user_uuid = occupant.uuid # Going to take the user's UUID who is in the channel and use it for verification.
+                        break
+
+            while type(msg) != dict:
+                    if user_uuid is not None:
+                        self.pnconfig.cipher_key = self.gdatabase.get_cipher_key_user(user_uuid)
+                        envelope = pubnub.history().channel(message.channel).count(1).reverse(True).sync()
+                        msg_dec = "{"+str(envelope.result.messages[0]).split(" {")[1]
+                        msg = ast.literal_eval(json.loads(json.dumps(msg_dec)))
+
+        except:
             return
-
-        else:
-            for occupant in users:
-                if occupant.uuid != self.uuid:
-                    user_uuid = occupant.uuid # Going to take the user's UUID who is in the channel and use it for verification.
-                    break
-
-        dict_ = {}
-        while type(msg) != type(dict_):
-            self.pnconfig.cipher_key = self.gdatabase.get_cipher_key_user(user_uuid)
-            envelope = pubnub.history().channel(message.channel).count(1).reverse(True).sync()
-            msg_dec = "{"+str(envelope.result.messages[0]).split(" {")[1]
-            msg = ast.literal_eval(json.loads(json.dumps(msg_dec)))
-
-        print(msg)
 
         if message.channel == self.admin_channel and "success" not in msg and "error" not in msg:
 

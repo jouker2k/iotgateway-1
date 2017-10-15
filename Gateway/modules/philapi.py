@@ -86,7 +86,7 @@ def light_brightness(state, bulb_id, bridge_key = bulb_key):
         if 'success' in result:
             print('Bulb {0} brightness changed to {1}'.format(bulb_id, state))
 
-        return req.text
+        return result.text
 
 def get_mac():
     global bulb_key

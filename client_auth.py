@@ -1,6 +1,7 @@
 import json
 import ast
 import hashlib
+import os
 
 from pubnub.callbacks import SubscribeCallback
 from pubnub.enums import PNStatusCategory
@@ -35,6 +36,12 @@ class Client(SubscribeCallback):
         self.uuid_hash = hashlib.new("sha3_512")
         encode = self.uuid_hash.update((self.pnconfig.uuid).encode("UTF-8"))
         self.channel = ""
+
+    def leave_check(self, param):
+        if param is "q":
+            print("Unsubscribing and exiting..")
+            self.pubnub.unsubscribe().channels(self.channel).execute();
+            os._exit(1)
 
     def publish_request(self, channel, msg):
         if type(msg) is dict:
@@ -86,6 +93,7 @@ class Client(SubscribeCallback):
 
                 while True:
                     show_modules = input("Show modules available (Y/n)? ")
+                    self.leave_check(show_modules)
                     if show_modules == "Y":
                         self.enquire_modules(self.channel)
                         break
@@ -95,17 +103,19 @@ class Client(SubscribeCallback):
                     if "modules" in msg["enquiry"].keys():
                         module_options = msg['enquiry']['modules']
                         show_module_methods = input("Choose a module to call methods from {}: ".format(module_options))
+                        self.leave_check(show_module_methods)
                         self.enquire_module_methods(self.channel, show_module_methods)
 
                     elif "module_methods" in msg["enquiry"].keys():
                         module_methods = msg['enquiry']['module_methods']
                         method_chosen = input("Choose a method to call {}: ".format(module_methods))
+                        self.leave_check(method_chosen)
                         print("You chose: {}".format(method_chosen))
 
                         while True:
                             print("In corresponding order, please enter the parameters in an array below, leave blank if none:")
                             params = input()
-
+                            self.leave_check(params)
                             if params:
                                 try:
                                     self.device_request(self.channel, msg['enquiry']['module_name'], method_chosen, ast.literal_eval(params))
@@ -127,4 +137,4 @@ class Client(SubscribeCallback):
             print(message.message)
 
 if __name__ == "__main__":
-    client = Client("platypus_591")
+        client = Client("platypus_717")
