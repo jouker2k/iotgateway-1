@@ -5,7 +5,7 @@ import sys
 
 def take_snapshot():
     """No parameters required"""
-    path = '/Users/sgript/Desktop/iotgateway-02_encryption_wip/Gateway/modules/images/snapshot.jpg'
+    path = './modules/images/snapshot.jpg'
 
     f = open(path, 'wb')
     f.write(requests.get('http://admin:aW90bGFiMQ==@192.168.2.4:8080/snapshot.jpg').content)
