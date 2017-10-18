@@ -39,10 +39,7 @@ def get_volume():
     if conn is not None:
         return conn
 
-    if tv.webos_client.get_volume() is not None:
-        return tv.webos_client.get_volume()
-    else:
-        return json.dumps({"lg_err": "issue getting volume"})
+    return tv.webos_client.get_volume()
 
 def set_volume(volume):
     conn = tv.connect()
@@ -81,18 +78,6 @@ def open_url(url):
 
     except:
         return json.dumps({"lg_err": "issue launching app"})
-
-def close_web():
-    conn = tv.connect()
-    if conn is not None:
-        return conn
-
-    try:
-        return tv.webos_client.close_web(url)
-        return json.dumps({"closed_web": "done"})
-
-    except:
-        return json.dumps({"lg_err": "issue closing web"})
 
 def launch_app(app):
     conn = tv.connect()
@@ -134,20 +119,12 @@ def current_app():
 
     return tv.webos_client.get_current_app()
 
-def close_app():
-    conn = tv.connect()
-    if conn is not None:
-        return conn
-
-    tv.webos_client.close_app()
-    return json.dumps({"close_app": "done"})
-
 def get_services():
     conn = tv.connect()
     if conn is not None:
         return conn
 
-    return tv.webos_client.geet_services()
+    return tv.webos_client.get_services()
 
 def get_inputs():
     conn = tv.connect()
@@ -156,12 +133,12 @@ def get_inputs():
 
     return tv.webos_client.get_inputs()
 
-def set_inputs(input):
+def set_input(input):
     conn = tv.connect()
     if conn is not None:
         return conn
 
-    return tv.webos_client.set_inputs(input)
+    return tv.webos_client.set_input(input)
 
 def get_audio_status(self):
     conn = tv.connect()
@@ -183,13 +160,6 @@ def set_mute(mute):
         return conn
 
     return tv.webos_client.set_mute(mute)
-
-def play():
-    conn = tv.connect()
-    if conn is not None:
-        return conn
-
-    return tv.webos_client.play()
 
 def power_on():
     conn = tv.connect()

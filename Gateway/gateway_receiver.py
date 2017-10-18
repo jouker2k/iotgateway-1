@@ -65,6 +65,7 @@ class Receiver(SubscribeCallback):
         self.pnconfig.subscribe_key = self.gdatabase.sub_key()
         self.pnconfig.publish_key = self.gdatabase.pub_key()
         self.pnconfig.secret_key = self.gdatabase.sec_key()
+        self.pnconfig.cipher_key = 'test_key'
 
         self.pnconfig.ssl = True
         self.pnconfig.reconnect_policy = PNReconnectionPolicy.LINEAR
