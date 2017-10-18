@@ -3,6 +3,13 @@ import json
 sys.path.append("..")
 from helpers.iotdb_smartthings import smartthings as st
 
+#
+# https://github.com/dpjanes/iotdb-smartthings for SmartThings wrapper
+# David Janes
+# IOTDB.org
+# 2014-01-31
+# see /helpers/ for more details
+
 devices = [
     "switch", "motion", "acceleration", "contact",
     "temperature", "battery", "acceleration", "threeAxis", "humidity"
