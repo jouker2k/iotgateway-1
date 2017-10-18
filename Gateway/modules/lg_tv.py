@@ -11,7 +11,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 ##
 ## https://github.com/grieve/python-lgtv for finding tv
 ## https://github.com/TheRealLink/pylgtv for rest
-## see /helpers/ for license and full details 
+## see /helpers/ for license and full details
 
 
 class TV(object):
@@ -39,8 +39,8 @@ def get_volume():
     if conn is not None:
         return conn
 
-    if tv.tv.webos_client.get_volume() is not None:
-        return tv.tv.webos_client.get_volume()
+    if tv.webos_client.get_volume() is not None:
+        return tv.webos_client.get_volume()
     else:
         return json.dumps({"lg_err": "issue getting volume"})
 
@@ -232,3 +232,6 @@ def send_message(message):
 
     tv.webos_client.send_message(message)
     return json.dumps({"send_message": "done"})
+
+
+print(power_off())
