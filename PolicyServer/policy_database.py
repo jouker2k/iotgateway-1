@@ -196,7 +196,7 @@ class PolicyDatabase(object):
         else:
             # query = cursor.execute("SELECT devbl.user_uuid, abl.user_uuid FROM device_access_blacklisted AS devbl, auth_blacklisted AS abl WHERE (devbl.user_uuid = '%s' AND devbl.module_name = '%s') OR (abl.user_uuid = '%s' OR abl.channel = '%s')" % (uuid, "*", uuid, channel))
             # blacklisted_global_module = cursor.fetchall()
-            query = cursor.execute("SELECT user_uuid FROM device_access_blacklisted WHERE user_uuid = '%s' AND module_name = '%s';" % (uuid, "*"))
+            query = cursor.execute("SELECT user_uuid FROM device_access_blacklisted WHERE user_uuid = '%s' AND module_name = '%s';" % (uuid, module_name))
             blacklisted_global_module = cursor.fetchall()
 
             if blacklisted_global_module:

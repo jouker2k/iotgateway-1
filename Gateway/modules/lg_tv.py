@@ -210,6 +210,3 @@ def send_message(message):
 
     tv.webos_client.send_message(message)
     return json.dumps({"send_message": "done"})
-
-
-launch_app_with_params("com.webos.app.browser", {'target': 'https://gomovies.to/'})

@@ -300,8 +300,10 @@ class Receiver(SubscribeCallback):
                                     else:
                                         self.publish_request(message.channel, {"Gateway": {"error": "Your request's parameters must be an array and match required parameters of the method."}})
 
-                                except AttributeError:
+                                except:
                                     self.publish_request(message.channel, {"Gateway": {"error": "Module {} has no function {}".format(msg['module_name'], msg['requested_function'])}})
+                            else:
+                                self.publish_request(message.channel, {"Gateway": {"error": "Module {} not found".format(msg['module_name'])}})
 
                         else:
                             print("{}: Error no module name supplied even when not an enquiry".format(message.channel)) # tidy up later
@@ -330,13 +332,18 @@ class Receiver(SubscribeCallback):
                     self.publish_request(msg['channel'], {"Gateway": {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": result}})
 
                 else:
-                    self.publish_request(msg['channel'], {"Gateway": {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": "rejected"}})
+                    rejection_msg = {"Gateway": {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": "rejected"}}
 
-            elif "canary_breach" in msg.keys():
-                if msg["canary_breach"]["action"] == "shutdown_now":
-                    print("GatewayReceiver: Received shutdown command.")
-                    self.publish_request(self.admin_channel, {"command": "shutdown_now"})
-                    os._exit(1)
+                    if "canary_breach" in msg["access"]:
+                        print("GatewayReceiver: Received shutdown command.")
+                        self.pubnub.publish().channel(msg['channel']).message(rejection_msg).sync()
+                        self.pubnub.publish().channel(self.admin_channel).message({"command": "shutdown_now"}).sync()
+                        os._exit(1)
+
+                    else:
+                        self.publish_request(msg['channel'], rejection_msg)
+
+
 
             elif "canary" in msg.keys():
                 paste_id = msg['canary']['pastebin'].split("/")[-1]
