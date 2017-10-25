@@ -89,6 +89,10 @@ class PolicyDatabase(object):
         cursor = self.connection.cursor()
         cursor.execute("UPDATE security_policy SET start_time = '%s', end_time = '%s' WHERE policy_id = '%s';" % (start_time, end_time, policy_id))
 
+    def delete_policy(self, policy_id):
+        cursor = self.connection.cursor()
+        cursor.execute("DELETE FROM security_policy WHERE policy_id = '%s'" % (policy_id))
+
     def get_blacklisted_auth(self):
         cursor = self.connection.cursor()
         row = cursor.execute("SELECT * FROM auth_blacklisted")
