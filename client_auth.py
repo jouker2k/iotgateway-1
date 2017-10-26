@@ -126,4 +126,5 @@ class Client(SubscribeCallback):
             print(message.message)
 
 if __name__ == "__main__":
-    client = Client("platypus_801")
+    user_uuid = input("Choose a UUID: ")
+    client = Client(user_uuid)

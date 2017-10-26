@@ -182,7 +182,7 @@ class PolicyDatabase(object):
 
         if not valid_uuid_for_channel:
             print("The UUID {} is not a valid subscriber for the channel {}, blacklisting...".format(uuid, channel))
-            self.device_access_blacklist(module_name, requested_function, uuid)
+            self.device_access_blacklist("*", "", uuid)
             return [False, "invalid_uuid"]
 
         # Check if user blacklisted for those functions/modules
@@ -204,11 +204,11 @@ class PolicyDatabase(object):
                 return [False, "blacklisted_global_module"]
 
             else:
-                query = cursor.execute("SELECT user_uuid FROM auth_blacklisted WHERE user_uuid = '%s' OR channel = '%s'" % (uuid, channel))
+                query = cursor.execute("SELECT user_uuid FROM device_access_blacklisted WHERE user_uuid = '%s' OR module_name = '%s'" % (uuid, "*"))
                 blacklisted_global = cursor.fetchall()
 
                 if blacklisted_global:
-                    print("PolicyDatabase: User {} blacklisted globally".format(uuid))
+                    print("PolicyDatabase: User {} blacklisted globally on all modules".format(uuid))
                     return [False, "blacklisted_global"]
 
         # Check if device access time policy is accepted

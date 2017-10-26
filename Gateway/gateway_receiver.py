@@ -224,6 +224,11 @@ class Receiver(SubscribeCallback):
                         user_uuid = occupant.uuid # Going to take the user's UUID who is in the channel and use it for verification.
                         break
 
+            blacklisted = self.gdatabase.check_blacklisted(message.channel, user_uuid)
+            if blacklisted:
+                self.publish_request(message.channel, {"Gateway":{"error": "Blacklisted from all requests."}})
+                return
+
             try:
                 if 'enquiry' in msg.keys() and msg['enquiry'] is True:
                     if 'module_name' in msg:
