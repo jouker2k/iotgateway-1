@@ -108,7 +108,7 @@ class PolicyServer(SubscribeCallback):
                     if "canary_breach" in access[1]:
                         action = access[1].split(":")[1]
 
-                        self.se.to_administrators(msg['request']['module_name'], msg['request']['user_uuid'], msg['channel'])
+                        self.se.to_administrators(msg['request']['module_name'], msg['request']['requested_function'], msg['request']['user_uuid'], msg['channel'])
 
                         if action == "shutdown_now": # send to receiver to shutdown entire service
                             self.publish_message(message.channel, {"canary_breach": {"module_name": msg['request']['module_name'], "uuid": msg['request']['user_uuid'], "channel": ['channel'], "action": action}})

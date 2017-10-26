@@ -47,7 +47,7 @@ class GatewayDatabase(object):
 
     def hide_canaries(self, uuid):
         cursor = self.connection.cursor()
-        row = cursor.execute("SELECT DISTINCT canary_function FROM canary_functions WHERE uuid != '%s' AND uuid != '%s' AND uuid IS NOT NULL;" % (uuid, None))
+        row = cursor.execute("SELECT DISTINCT canary_module FROM canary_functions WHERE uuid != '%s' AND uuid != '%s' AND uuid IS NOT NULL;" % (uuid, None))
         rows = cursor.fetchall()
 
         result = []

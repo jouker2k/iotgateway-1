@@ -21,14 +21,14 @@ class Alert:
         self.emails = ["s94ahmad@gmail.com", "ahmads18@cardiff.ac.uk"]
 
 
-    def to_administrators(self, function, uuid, channel):
+    def to_administrators(self, module, function, uuid, channel):
         s = smtplib.SMTP(host = self.email_config[0][3], port = self.email_config[0][4])
         s.starttls()
         s.login(self.MY_ADDRESS, self.PASSWORD)
 
         for email in self.database_emails:
             msg = MIMEMultipart()
-            message = "The canary function {} was ran by {} on channel at {}!".format(function, uuid, channel)
+            message = "The canary function {} in the {} module was ran by {} on channel at {}!".format(function, module, uuid, channel)
 
             msg['From'] = self.MY_ADDRESS
             msg['To'] = email[1]
