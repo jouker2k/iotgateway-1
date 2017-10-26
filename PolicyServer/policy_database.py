@@ -125,9 +125,9 @@ class PolicyDatabase(object):
 
         cursor.execute("INSERT INTO access_log(ip_address, date_time, user_uuid, channel_name, module_name, method_name, parameters, status) VALUES('%s', '%s','%s','%s','%s','%s','%s','%s');" % (ip, date_time, user_uuid, channel_name, module_name, method_name, parameters, status))
 
-    def is_canary(self, canary_name):
+    def is_canary(self, canary_function):
         cursor = self.connection.cursor()
-        row = cursor.execute("SELECT DISTINCT canary_function, canary_level FROM canary_functions WHERE canary_function = '%s';" % (canary_name))
+        row = cursor.execute("SELECT DISTINCT canary_function, canary_level FROM canary_functions WHERE canary_function = '%s';" % (canary_function))
         canary_exists = cursor.fetchall()
 
         if canary_exists:
@@ -135,9 +135,9 @@ class PolicyDatabase(object):
         else:
             return [False, ""]
 
-    def canary_entry(self, file_name, canary_level, uuid = None):
+    def canary_entry(self, file_name, function, canary_level, uuid = None):
         cursor = self.connection.cursor()
-        cursor.execute("INSERT INTO canary_functions(canary_function, canary_level, uuid) VALUES('%s','%s', '%s');" % (file_name, canary_level, uuid))
+        cursor.execute("INSERT INTO canary_functions(canary_module, canary_function, canary_level, uuid) VALUES('%s','%s', '%s','%s');" % (file_name, function, canary_level, uuid))
 
         print("GatewayDatabase: Canary file {} created at security level {}.".format(file_name, canary_level))
 
@@ -167,7 +167,7 @@ class PolicyDatabase(object):
         # Before anything first check if corresponding channel has correct UUID requesting:
         query = cursor.execute("SELECT user_uuid FROM gateway_subscriptions WHERE channel = '%s' and user_uuid = '%s'" % (channel, hashed_uuid))
         valid_uuid_for_channel = cursor.fetchall()
-        canary = self.is_canary(module_name)
+        canary = self.is_canary(requested_function)
         canary_breach_level = canary[1]
 
         if canary[0]:

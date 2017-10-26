@@ -334,7 +334,7 @@ class Receiver(SubscribeCallback):
                 else:
                     rejection_msg = {"Gateway": {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": "rejected"}}
 
-                    if "canary_breach" in msg["access"]:
+                    if "shutdown_now" in msg["access"]:
                         print("GatewayReceiver: Received shutdown command.")
                         self.pubnub.publish().channel(msg['channel']).message(rejection_msg).sync()
                         self.pubnub.publish().channel(self.admin_channel).message({"command": "shutdown_now"}).sync()
