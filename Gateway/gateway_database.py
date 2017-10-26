@@ -102,6 +102,14 @@ class GatewayDatabase(object):
 
         print("GatewayDatabase: UUID {} blacklisted due to violation on {} channel".format(uuid, channel_name))
 
+    def check_blacklisted(self, channel_name, uuid): # TODO: Move directly to Policy server?
+        cursor = self.connection.cursor()
+        cursor.execute("SELECT * FROM auth_blacklisted WHERE channel = '%s' OR user_uuid = '%s'" % (channel_name, uuid))
+        rows = cursor.fetchall()
+
+        if rows:
+            return True
+
     def gateway_subscriptions(self, channel_name, uuid, cipher_key):
         uuid = sha3.hash(uuid)
 

@@ -239,7 +239,10 @@ class Receiver(SubscribeCallback):
 
         elif message.channel not in self.default_channels and "error" not in msg:
 
-            # Check if more than 1 person in channel + determine their UUID
+            blacklisted = self.gdatabase.check_blacklisted(message.channel, user_uuid)
+            if blacklisted:
+                self.publish_request(message.channel, {"Gateway":{"error": "Blacklisted from all requests."}})
+                return
 
             try:
                 if 'enquiry' in msg.keys() and msg['enquiry'] is True:
