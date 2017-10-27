@@ -1,7 +1,6 @@
 import inspect
 
-#https://stackoverflow.com/a/12627202
-def get_default_args(func):
+def get_default_args(func): # ref https://stackoverflow.com/a/12627202
     signature = inspect.signature(func)
     return {
         k: v.default

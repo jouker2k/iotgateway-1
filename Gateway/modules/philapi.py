@@ -1,24 +1,22 @@
+'''
+__author__ = "@sgript"
+
+'''
 import requests
 import json
-# from .exceptions import *
-# from .exceptions import exception
 
-# TODO: For Philips API calls do better error returns, such as passing on those returned via the API.
-
-# TODO PLACEMENT OF KEY
-bulb_key = "PEuzGOSH9rFqcjqDOCREmpeBpdT-kc-zbFY3tyXh"
 
 class ButtonNotPressed(Exception):
     pass
 
+bulb_key = "PEuzGOSH9rFqcjqDOCREmpeBpdT-kc-zbFY3tyXh"
+
 def bridge_ip():
     list_bridges = requests.get('https://www.meethue.com/api/nupnp')
     bridge_ip = json.loads(list_bridges.text) # string to json
-    if len(bridge_ip) > 1:
-        # TODO: Selection screen maybe here, if multiple IPs (multiple bridges) detected..
-        pass
-    else:
-        bridge_ip = bridge_ip[0]['internalipaddress'] # if just one bridge, take its ip
+
+    if bridge_ip:
+        bridge_ip = bridge_ip[0]['internalipaddress']
 
     return bridge_ip
 
@@ -55,14 +53,12 @@ def bridge_auth():
 def show_hues(bridge_key = bulb_key):
     req = requests.get('http://{0}/api/{1}/lights'.format(bridge_ip(), bridge_key))
 
-    # like in bridge_auth_key func will need to dump the json using dumps() then use loads()
     bulbs = json.loads(req.text)
 
     bulbs_available = {}
     for bulb_id in bulbs:
          bulbs_available[bulbs[bulb_id]['name']] = bulb_id
 
-    #print(', '.join(map(str, bulbs_available)))
     return bulbs_available
 
 def light_switch(state, bulb_id, bridge_key = bulb_key):
@@ -78,9 +74,9 @@ def light_brightness(state, bulb_id, bridge_key = bulb_key):
     if state < 1 or state > 100:
         return {"error": "light brightness should be between 1 or 100"}
     else:
-        bri_lvl = int((state / 100) * 254)
+        bri_lvl = int((state / 100) * 254) # level gets changed to percentage equivalence out of 254 (max brightness for hues)
 
-        data = json.dumps({'on':True, "bri":bri_lvl}) # To change brightness level it requires you to switch the bulb on – maybe change this?
+        data = json.dumps({'on':True, "bri":bri_lvl}) # if changing brightness bulb must be turned on.
         result = requests.put(api_url, data)
 
         if 'success' in result:
@@ -96,7 +92,3 @@ def get_mac():
 
     mac = jsonresp['config']['mac']
     return mac
-
-#temp
-#device_info(1, "on", True, "PEuzGOSH9rFqcjqDOCREmpeBpdT-kc-zbFY3tyXh")
-# print(light_switch(False, 1))

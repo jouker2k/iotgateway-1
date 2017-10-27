@@ -1,17 +1,18 @@
 import sys
 import json
 import logging
+
 sys.path.append("..")
 from helpers.pylgtv_master.pylgtv import WebOsClient
 from helpers.python_lgtv_master.lg import Remote
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-
-##
+## See README.md for more info and Gateway/helpers/
 ## https://github.com/grieve/python-lgtv for finding tv
 ## https://github.com/TheRealLink/pylgtv for rest
 ## see /helpers/ for license and full details
+## Calls the wrapper cleanly, acting as the module face to user-applications.
 
 
 class TV(object):

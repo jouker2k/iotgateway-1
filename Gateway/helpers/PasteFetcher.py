@@ -1,4 +1,4 @@
-# https://github.com/lnus/pastebin-reader/
+# ref https://github.com/lnus/pastebin-reader/
 
 import requests
 import random

@@ -1,3 +1,9 @@
+'''
+__author__ = "@sgript"
+
+Proof of concept client, showing how interactions with gateway may take place.
+Actual implementation of client may be another IoT device or a user smartphone app etc.
+'''
 import json
 import ast
 import hashlib

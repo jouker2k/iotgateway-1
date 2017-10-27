@@ -1,7 +1,7 @@
 import ast
 import sys
 
-# NOTE: Adapted from https://stackoverflow.com/a/31005891
+# adapted from ref https://stackoverflow.com/a/31005891
 
 def top_level_functions(body):
     return (f for f in body if isinstance(f, ast.FunctionDef))
@@ -23,6 +23,3 @@ def find(module):
         functions.append(func.name)
 
     return functions
-
-# if __name__ == "__main__":
-#     find(sys.argv[1:])
