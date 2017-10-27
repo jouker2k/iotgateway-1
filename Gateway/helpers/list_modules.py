@@ -1,11 +1,10 @@
 import pkgutil
 import sys
 import os
-#from .. import modules
+
 sys.path.append(".")
 import modules
 
-def list_modules():
+def list_modules(): # ref https://stackoverflow.com/a/1310912
     pkgpath = os.path.dirname(modules.__file__)
     return [module for _, module, _ in pkgutil.iter_modules([pkgpath])]
-  # https://stackoverflow.com/a/1310912

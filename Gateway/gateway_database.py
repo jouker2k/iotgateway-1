@@ -1,3 +1,9 @@
+'''
+__author__ = "@sgript"
+
+Database access for gateway server for maintenance/startup purposes.
+'''
+
 import pymysql
 from helpers import sha3
 import hashlib
@@ -154,21 +160,3 @@ class GatewayDatabase(object):
         rows = cursor.fetchall()
 
         return rows[0][0]
-
-
-
-# if __name__ == "__main__":
-#
-#     password = input("Database password: ")
-#     # database = input("Database name: ")
-#
-#     # temp
-#     host = 'ephesus.cs.cf.ac.uk'
-#     user = 'c1312433'
-#
-#     database = 'c1312433'
-#
-#     gd = GatewayDatabase(host, user, password, database)
-#     print(gd.set_receiver_auth_channel("test"))
-#     #print(gd.hide_canaries('platypus_0'))
-# #     gd.get_channels()

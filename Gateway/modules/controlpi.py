@@ -1,3 +1,7 @@
+'''
+__author__ = "@sgript"
+
+'''
 from pubnub.enums import PNStatusCategory
 from pubnub.pnconfiguration import PNConfiguration
 from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
@@ -21,11 +25,11 @@ my_listener = SubscribeListener()
 pubnub.add_listener(my_listener)
 pubnub.subscribe().channels('embedded_devices').execute()
 
+# series of functions to control LEDs
 def LED_on(colour, auth_key = None):
     pnconfig.auth_key = auth_key
     pubnub = PubNub(pnconfig)
     req_id = idgen.id_generator(size = 10)
-    # my_listener.wait_for_connect()
 
     pubnub.publish().channel('embedded_devices').message({"request_id": req_id, "embedded_device": "led", "module": "led", "function": "on", "parameters": [colour]}).sync()
     publish = my_listener.wait_for_message_on('embedded_devices')
@@ -37,7 +41,6 @@ def LED_off(colour, auth_key = None):
     pnconfig.auth_key = auth_key
     pubnub = PubNub(pnconfig)
     req_id = idgen.id_generator(size = 10)
-    # my_listener.wait_for_connect()
 
     pubnub.publish().channel('embedded_devices').message({"request_id": req_id, "embedded_device": "led", "module": "led", "function": "off", "parameters": [colour]}).sync()
 
@@ -51,7 +54,6 @@ def blink(colour, number_of_times, auth_key = None):
     pnconfig.auth_key = auth_key
     pubnub = PubNub(pnconfig)
     req_id = idgen.id_generator(size = 10)
-    # my_listener.wait_for_connect()
 
     pubnub.publish().channel('embedded_devices').message({"request_id": req_id, "embedded_device": "led", "module": "led", "function": "blink", "parameters": [colour, number_of_times]}).sync()
 
@@ -71,8 +73,3 @@ def morse(text, colour, auth_key = None):
     while req_id not in publish.message:
         publish = my_listener.wait_for_message_on('embedded_devices')
         return publish.message
-
-
-# blink(["red", 10], "EMB_48391")
-# # pubnub.unsubscribe().channels('awesomeChannel').execute()
-# # my_listener.wait_for_disconnect()

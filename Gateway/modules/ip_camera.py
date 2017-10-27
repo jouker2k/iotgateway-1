@@ -1,3 +1,7 @@
+'''
+__author__ = "@sgript"
+
+'''
 import requests
 import os
 import pyimgur

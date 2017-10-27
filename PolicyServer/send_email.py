@@ -1,14 +1,14 @@
-#;policy
+'''
+__author__ = "@sgript"
+
+Sends alert to admins when a canary function is triggered
+'''
+import pymysql
+import sys
 
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-
-import pymysql
-import sys
-sys.path.append("..")
-
-import policy_database
 
 class Alert:
     def __init__(self, database):
@@ -17,9 +17,6 @@ class Alert:
         self.MY_ADDRESS = self.email_config[0][1]
         self.PASSWORD = self.email_config[0][2]
         self.database_emails = database.get_admin_emails()
-
-        self.emails = ["s94ahmad@gmail.com", "ahmads18@cardiff.ac.uk"]
-
 
     def to_administrators(self, module, function, uuid, channel):
         s = smtplib.SMTP(host = self.email_config[0][3], port = self.email_config[0][4])
@@ -40,12 +37,3 @@ class Alert:
             del msg
 
         s.quit()
-
-    def email_config(self):
-        pass
-
-if __name__ == '__main__':
-
-    pd = policy_database.PolicyDatabase('ephesus.cs.cf.ac.uk', 'c1312433', 'berlin', 'c1312433')
-    alert = Alert(pd)
-    alert.to_administrators('myFunc', 'someUUID', 'someChannel')

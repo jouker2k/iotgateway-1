@@ -1,26 +1,13 @@
+'''
+__author__ = "@sgript"
+
+Series of database calls for policy server to determine if access should be allowed, some maintenance functions to start policy server.
+'''
 import pymysql
 import datetime
-from datetime import timedelta
 import time
-import hashlib
-
-'''
-DB Columns?
-===========
-- module_name
-- device_id
-- start_time
-- end_time
-- blacklisted_user_uuid
-'''
-
-# TODO Perhaps allow creating Canary from here, so we make canary_entry() from here (see GatewayDatabase) then it sends msg to receiver to fulfil the canary?
-# Perhaps even send python code in a pastebin link to parse and save as a file – fully remote.
-
-def sha3(x):
-    shahash = hashlib.new("sha3_512")
-    encode = shahash.update((x).encode("UTF-8"))
-    return shahash.hexdigest()
+from datetime import timedelta
+from helpers.sha3 import sha3
 
 class PolicyDatabase(object):
     def __init__(self, host, user, password, database):
@@ -155,14 +142,14 @@ class PolicyDatabase(object):
 
         cursor = self.connection.cursor()
 
-        today = time.strftime('%Y-%m-%d')
+        today = time.strftime('%Y-%m-%d') # Check if rejected 3 times today
         query = cursor.execute("SELECT date_time FROM access_log WHERE DATE(date_time) LIKE '%s' AND user_uuid = '%s' AND module_name = '%s' AND status LIKE  '%s'" % (today, hashed_uuid, module_name, "%" + "rejected" + "%"))
         rejected = cursor.fetchall()
 
         if len(rejected) >= 3:
             return [False, "today_over_rejected"]
 
-        time_now = time.strftime('%H:%M:%S')
+        time_now = time.strftime('%H:%M:%S') # Check if last access rejected less than 1 minute ago
         query = cursor.execute("SELECT TIME(date_time) FROM access_log WHERE user_uuid = '%s' AND status LIKE '%s' ORDER  BY date_time DESC LIMIT 1;" % (hashed_uuid, "%" + "rejected" + "%"))
         last_access = cursor.fetchall()
 
@@ -173,7 +160,7 @@ class PolicyDatabase(object):
             if (accessed_last) < timedelta(minutes=1):
                 return [False, "rejected_too_soon"]
 
-        # Before anything first check if corresponding channel has correct UUID requesting:
+        # Check things such as: if canary being accessed or if stolen channel
         query = cursor.execute("SELECT user_uuid FROM gateway_subscriptions WHERE channel = '%s' and user_uuid = '%s'" % (channel, hashed_uuid))
         valid_uuid_for_channel = cursor.fetchall()
         canary = self.is_canary(requested_function)
@@ -194,25 +181,23 @@ class PolicyDatabase(object):
             self.device_access_blacklist("*", "", uuid)
             return [False, "invalid_uuid"]
 
-        # Check if user blacklisted for those functions/modules
+        # Blacklist checks
         query = cursor.execute("SELECT user_uuid FROM device_access_blacklisted WHERE user_uuid = '%s' AND module_name = '%s' AND requested_function = '%s'" % (uuid, module_name, requested_function))
         blacklisted_specific = cursor.fetchall()
 
-        if blacklisted_specific:
+        if blacklisted_specific: # If blacklisted for this specific function for module
             print("PolicyDatabase: User {} blacklisted on {} function in {} module".format(uuid, requested_function, module_name))
             return [False, "blacklisted_specific"]
 
-        else:
-            # query = cursor.execute("SELECT devbl.user_uuid, abl.user_uuid FROM device_access_blacklisted AS devbl, auth_blacklisted AS abl WHERE (devbl.user_uuid = '%s' AND devbl.module_name = '%s') OR (abl.user_uuid = '%s' OR abl.channel = '%s')" % (uuid, "*", uuid, channel))
-            # blacklisted_global_module = cursor.fetchall()
-            query = cursor.execute("SELECT user_uuid FROM device_access_blacklisted WHERE user_uuid = '%s' AND module_name = '%s';" % (uuid, "module_name"))
+        else: # If blacklisted from all functions of a module
+            query = cursor.execute("SELECT user_uuid FROM device_access_blacklisted WHERE user_uuid = '%s' AND module_name = '%s' AND requested_function '%s';" % (uuid, module_name, "*"))
             blacklisted_global_module = cursor.fetchall()
 
             if blacklisted_global_module:
                 print("PolicyDatabase: User {} blacklisted globally on module {}".format(uuid, module_name))
                 return [False, "blacklisted_global_module"]
 
-            else:
+            else: # If blacklisted from all modules
                 query = cursor.execute("SELECT user_uuid FROM device_access_blacklisted WHERE user_uuid = '%s' OR module_name = '%s'" % (uuid, "*"))
                 blacklisted_global = cursor.fetchall()
 
@@ -235,10 +220,10 @@ class PolicyDatabase(object):
                 print("PolicyDatabase: Time policy not specified for {} function on {} module requested by user: {}".format(requested_function, module_name, uuid))
                 return [False, "time_rejected"]
 
-        t = datetime.datetime.now()
+        t = datetime.datetime.now() # compare current time to time-frame from time policy
         now_delta = timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
         access = False
-        if end_time <= start_time:
+        if end_time <= start_time: # wrap around
             access = start_time <= now_delta or end_time >= now_delta
         else:
             access = start_time <= now_delta <= end_time
@@ -251,19 +236,3 @@ class PolicyDatabase(object):
         else:
             print("PolicyDatabase: Time not within range {} function on {} module requested by user: {}".format(requested_function, module_name, uuid))
             return [access, "time_rejected"]
-
-# if __name__ == "__main__":
-#     password = input("Database password: ")
-#     host = 'ephesus.cs.cf.ac.uk'
-#     user = 'c1312433'
-#     database = 'c1312433'
-#
-#     pd = PolicyDatabase(host, user, password, database)
-#     # temp riieiw934w9291o3992sk
-#     # print(pd.access_device('ALF0OCK6IC', '0', 'platypus_0', 'smart_things', 'toggle_switch', ["Hue white lamp 1"]))
-#     print(pd.access_device('KBKAMUKDZ1', '00:17:88:6c:d6:d3', 'platypus_194', 'philapi', 'light_switch', [False, 1]))
-#     #pd.is_canary("file_read")
-#     # pd.undo_device_blacklist('test_user_uuid_2')
-#     # pd.set_policy('philapi', '00:17:88:6c:d6:d3', 'show_hues', '', '06:00', '05:59')
-#
-#     #pd.modify_policy(1, '00:23:00', '00:03:00')

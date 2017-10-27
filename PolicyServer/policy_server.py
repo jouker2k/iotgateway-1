@@ -1,20 +1,18 @@
+'''
+__author__ = "@sgript"
+
+Policy server, handles communication to grant access / instruct gateway, used for remotely modifying/adding/deleting policies also
+'''
 import json, ast
 import policy_database
+import sys, os
+import send_email
 
 from pubnub.enums import PNStatusCategory
 from pubnub.callbacks import SubscribeCallback
+from helpers.callbacks import my_publish_callback
 from pubnub.pubnub import PubNub
 from pubnub.pnconfiguration import PNConfiguration, PNReconnectionPolicy
-
-import sys, os
-
-import send_email
-
-def my_publish_callback(envelope, status):
-    if not status.is_error():
-        pass
-    else:
-        pass
 
 class PolicyServer(SubscribeCallback):
 
@@ -36,19 +34,7 @@ class PolicyServer(SubscribeCallback):
         self.pubnub.add_listener(self)
         self.pubnub.subscribe().channels('policy').execute()
 
-
         self.se = send_email.Alert(self.pd)
-
-    def presence(self, pubnub, presence):
-
-        # TODO:
-        #
-        # If presence seen that of anyone other than the gateway
-        # Email alert.
-        #
-
-        pass  # handle incoming presence data
-
 
     def status(self, pubnub, status):
         if status.category == PNStatusCategory.PNUnexpectedDisconnectCategory:
@@ -69,59 +55,49 @@ class PolicyServer(SubscribeCallback):
         if 'policy_admin' in msg.keys():
             print(msg['policy_admin']['requested_function'])
             method_to_call = getattr(self.pd, msg['policy_admin']['requested_function'])
-            result = method_to_call(*msg['policy_admin']['parameters'])
+            result = method_to_call(*msg['policy_admin']['parameters']) # call requested function
 
-
-            if method_to_call != getattr(self.pd, "canary_entry"):
+            if method_to_call != getattr(self.pd, "canary_entry"): # if not remoteely creating canary, it was remote policy controls, show result
                 if result is not None:
                     self.publish_message(message.channel, {"result.policy.admin": result})
                 else:
                     self.publish_message(message.channel, {"result.policy.admin": "successully ran {}".format(msg['policy_admin']['requested_function'])})
-            else:
-                # {"policy_admin": {"requested_function": "canary_entry", "parameters": ["testfile", "B"], "pastebin": "url"}}
-                # send this response to gateway
-                # gateway parses pastebin, takes content
-                # creates file with this content
-                # puts into the modules folder
 
-
+            else: # if remote canary instruct gateway to make a file
                 self.publish_message('policy', {"canary": msg['policy_admin']})
 
-                # TODO: {'canary': {'requested_function': 'file_reading', 'parameters': ['testfile', 'B'], 'pastebin': 'https://pastebin.com/RuYyiMwj'}}
-                # Also note we need to remove the `parameters` key now, unneeded when sent to receiver.
-
-        #elif 'access' not in msg and 'policy_admin' not in msg: #if msg['access']:
+        # Otherwise is a regular access request from user sent to gateway
+        # gateway has sent it here to check if policy will allow it
         elif 'request' in msg.keys():
             if msg['request']['module_name'] != 'help':
                 if 'user_uuid' in msg['request'] and 'mac_address' in msg:
 
+                    # check with database to confirm if access is possible
                     access = self.pd.access_device(msg['channel'], msg['mac_address'], msg['request']['user_uuid'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'])
 
                     status = "granted" if access[0] is True else "rejected: {}".format(access[1])
 
                     self.publish_message(message.channel, {"access": status, "channel": msg['channel'], "request": msg['request']})
-                    # NOTE: Got rid of msg['request']['ip'] as first param here
                     self.pd.access_log(msg['request']['user_uuid'], msg['channel'], msg['request']['module_name'], msg['request']['requested_function'], msg['request']['parameters'], status)
 
                     print("PolicyServer: Access on {} by {} logged as {}".format(msg['channel'], msg['request']['user_uuid'], status))
 
-                    if "canary_breach" in access[1]:
+                    if "canary_breach" in access[1]: # if requested function was canary,
                         action = access[1].split(":")[1]
 
+                        # always send admins an email
                         self.se.to_administrators(msg['request']['module_name'], msg['request']['requested_function'], msg['request']['user_uuid'], msg['channel'])
 
-                        if action == "shutdown_now": # send to receiver to shutdown entire service
+                        if action == "shutdown_now": # if severity causes shutdown, tell gateway to shutdown too
                             self.publish_message(message.channel, {"canary_breach": {"module_name": msg['request']['module_name'], "uuid": msg['request']['user_uuid'], "channel": ['channel'], "action": action}})
                             print("PolicyServer: Canary Breach level A, shutting down...")
                             os._exit(1)
 
-                        elif action == "email_admins_blacklist":
+                        elif action == "email_admins_blacklist": # if severity causes blacklist, blacklist user entirely from all modules
                             self.pd.device_access_blacklist("*", "", msg['request']['user_uuid'])
 
                 elif 'user_uuid' not in msg['request']:
                     self.publish_message(message.channel, {"error": "must provide user uuid", "channel": msg['channel']})
-                    # Receiver hasn't provided full information
-                    # Maybe make this can be negligible for some parameters like module_name, as device_id should be enough
 
             else:
                 self.publish_message(message.channel, {"access": "granted", "channel": msg['channel'], "request": msg['request']})

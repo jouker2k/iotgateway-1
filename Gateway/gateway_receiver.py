@@ -1,20 +1,18 @@
-
 '''
-__author__ = "sgript"
+__author__ = "@sgript"
 
-Expected request format:
-{
-'user_uuid': '',
-'enquiry': '',               # Boolean, if used all rest parameters are unneeded, module_name can be optionally checked.
-'module_name': '',
-'requested_function': '',
-'parameters': ''
-}
+Example JSONs:
+* Remotely create a new module:
+{"module_name": "test_module", "pastebin": "https://pastebin.com/7wuPW4yd", "installation_commands": "pip install bs4"}
 
-Policy response-back format:
-{'access': 'rejected', 'request': {'user_uuid': 'client_test', 'enquiry': False, 'module_name': 'philapi', 'requested_function': 'light_switch', 'parameters': [False, 1]}}
+* Enquiry of modules:
+{"enquiry": True}
 
-All newly added modules go into /modules/ and are picked up by gateway.
+* Enquiry of functions for a module:
+{"enquiry": True, "module_name": "philapi"}
+
+* Make a device request:
+{"enquiry": false, "module_name": "philapi", "requested_function": "nonexistent_function", "parameters": [true, 1]}
 '''
 
 import sys
@@ -25,7 +23,6 @@ import inspect
 from importlib import util
 
 from helpers import module_methods, default_args, PasteFetcher, id_generator as idgen, list_modules as lm
-from helpers.aes import AESCipher
 from exceptions import exceptions
 from modules import *
 from modules import help
@@ -128,9 +125,10 @@ class Receiver(SubscribeCallback):
 
     def message(self, pubnub, message):
 
-        try:
+        try: # try to set cipher key then re-read message
             msg = message.message
 
+            # Check if more than 1 person in channel + determine their UUID
             envelope = pubnub.here_now().channels(message.channel).include_uuids(True).sync()
 
             users = envelope.result.channels[0].occupants
@@ -150,18 +148,15 @@ class Receiver(SubscribeCallback):
             while type(msg) != dict:
                     if user_uuid is not None:
                         self.pnconfig.cipher_key = self.gdatabase.get_cipher_key_user(user_uuid)
-                        envelope = pubnub.history().channel(message.channel).count(1).reverse(True).sync()
+                        envelope = pubnub.history().channel(message.channel).count(1).reverse(True).sync() # re-read
                         msg_dec = "{"+str(envelope.result.messages[0]).split(" {")[1]
                         msg = ast.literal_eval(json.loads(json.dumps(msg_dec)))
 
         except:
             return
 
-        if message.channel == self.admin_channel and "success" not in msg and "error" not in msg:
+        if message.channel == self.admin_channel and "success" not in msg and "error" not in msg: # install modules remotely
 
-            '''
-            {"module_name": "x", "pastebin": "y", "installation_commands": "pip ..."}
-            '''
             usable_packages = ["pip", "brew"]
 
             try:
@@ -169,7 +164,7 @@ class Receiver(SubscribeCallback):
                 function_content = self.pastebin.parse_paste(paste_id)
                 with open('./modules/{}.py'.format(msg['module_name']),'w') as f:
 
-                    cmd = msg["installation_commands"].split(" ")
+                    cmd = msg["installation_commands"].split(" ") # capable of multiple installation commands for newly added modules
 
                     if len(cmd) > 1:
                         if cmd[0] in usable_packages:
@@ -229,7 +224,7 @@ class Receiver(SubscribeCallback):
                             os.remove(f.name)
                             return
 
-                    f.write(function_content)
+                    f.write(function_content) # once validation checks out, make the physical module
                     self.publish_request(self.admin_channel, {"success": "module {} successfully added".format(msg["module_name"]), "request": message.message})
 
             except KeyError:
@@ -237,15 +232,15 @@ class Receiver(SubscribeCallback):
                 self.publish_request(self.admin_channel, {"error": "module_name, pastebin and installation_commands must be included as keys", "request": message.message})
                 pass
 
-        elif message.channel not in self.default_channels and "error" not in msg:
+        elif message.channel not in self.default_channels and "error" not in msg: # handle regular user requests here
 
             blacklisted = self.gdatabase.check_blacklisted(message.channel, user_uuid)
-            if blacklisted:
+            if blacklisted: # check if auth_blacklisted -> means no access whatsoever
                 self.publish_request(message.channel, {"Gateway":{"error": "Blacklisted from all requests."}})
                 return
 
             try:
-                if 'enquiry' in msg.keys() and msg['enquiry'] is True:
+                if 'enquiry' in msg.keys() and msg['enquiry'] is True: # request to show available modules or functions for a module
                     if 'module_name' in msg:
                         module_found = True if util.find_spec("modules."+msg['module_name']) != None else False
 
@@ -262,7 +257,7 @@ class Receiver(SubscribeCallback):
                                     # Going to remove any default parameters - no need to supply keys etc.
                                     self.delete_defaults(function, dictionary_of_functions[method])
 
-                                enquiry_response = {"enquiry": {"module_name": msg['module_name'], "module_methods": dictionary_of_functions}}
+                                enquiry_response = {"enquiry": {"module_name": msg['module_name'], "module_methods": dictionary_of_functions}} # show available modules' functions/methods
 
                                 self.publish_request(message.channel, {"Gateway": enquiry_response})
 
@@ -286,9 +281,8 @@ class Receiver(SubscribeCallback):
                         #modules_to_show =  list(set(module_list) - set(canaries_for_uuid))
 
                         self.publish_request(message.channel, {"Gateway": {"enquiry": {"modules": modules_to_show}}})
-                # else:
-                #     self.publish_request(message.channel, {"error": "Enquiry must be provided in the request."})
 
+                # process user device request (non-enquiry)
                 elif 'enquiry' in msg.keys() and msg['enquiry'] is False:
                     if 'requested_function' in msg:
                         if 'module_name' in msg:
@@ -312,7 +306,7 @@ class Receiver(SubscribeCallback):
                                             mac_address = '0'
                                             print("GatewayReceiver: Module {} does not have get_mac(), searching with 0 instead".format(msg['module_name']))
 
-                                        finally:
+                                        finally: # after validation checks out, give to policy server to verify security
                                             msg["user_uuid"] = user_uuid
                                             self.pnconfig.cipher_key = self.gdatabase.get_cipher_key()
                                             self.publish_request("policy", {"channel": message.channel, "mac_address": mac_address, "request": msg})
@@ -338,7 +332,7 @@ class Receiver(SubscribeCallback):
             except Exception as e:
                 print("GatewayReceiverError: {}".format(e))
 
-        elif message.channel == "policy":
+        elif message.channel == "policy": # respond accordingly depending on policy's decisions
             self.pnconfig.cipher_key = self.gdatabase.get_cipher_key()
 
             if "access" in msg.keys():
@@ -350,11 +344,11 @@ class Receiver(SubscribeCallback):
 
                     module = sys.modules['modules.' + msg['request']['module_name']]
                     method_requested = getattr(module, msg['request']['requested_function'])
-                    result = method_requested(*msg['request']['parameters'])
+                    result = method_requested(*msg['request']['parameters']) # execute user's requested function
 
                     self.publish_request(msg['channel'], {"Gateway": {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": result}})
 
-                else:
+                else: # rejection message or if requested to emergency shutdown by policy server
                     rejection_msg = {"Gateway": {"module_name": msg['request']['module_name'], "requested_function": msg['request']['requested_function'], "result": "rejected"}}
 
                     if "shutdown_now" in msg["access"]:
@@ -366,7 +360,7 @@ class Receiver(SubscribeCallback):
                     else:
                         self.publish_request(msg['channel'], rejection_msg)
 
-            elif "canary" in msg.keys():
+            elif "canary" in msg.keys(): # process command from policy to create physical canary file, processed from pastebin code.
                 paste_id = msg['canary']['pastebin'].split("/")[-1]
                 function_content = self.pastebin.parse_paste(paste_id)
                 with open('./modules/{}.py'.format(msg['canary']['canary_name']),'w') as f:

@@ -1,5 +1,6 @@
 import sys
 import json
+
 sys.path.append("..")
 from helpers.iotdb_smartthings import smartthings as st
 
@@ -8,9 +9,11 @@ from helpers.iotdb_smartthings import smartthings as st
 # David Janes
 # IOTDB.org
 # 2014-01-31
-# see /helpers/ for more details
+# see Gateway/helpers/ for more details
+# Calls the wrapper cleanly, acting as the module face to user-applications.
+# In this case, calls wrapper but combines its functions to create richer functions
 
-devices = [
+devices = [ # smart devices types supported by wrapper
     "switch", "motion", "acceleration", "contact",
     "temperature", "battery", "acceleration", "threeAxis", "humidity"
 ]
@@ -19,12 +22,10 @@ smartthings = st.SmartThings("")
 smartthings.load_settings(filename = "helpers/iotdb_smartthings/smartthings.json")
 smartthings.request_endpoints()
 
-def list_types():
+def list_types(): # list types as above (line 15)
     return json.dumps({"types": devices})
 
-
-def list_devices():
-
+def list_devices(): # for each type in (line 15) gets all devices of kind in network
     devices_available = {}
     for device_type in devices:
         devices_of_type = smartthings.request_devices(device_type)
@@ -35,9 +36,8 @@ def list_devices():
 
     return json.dumps(devices_available)
 
-
-def find_of_type(device_type):
-    """Provide switch, motion, acceleration, contact,
+def find_of_type(device_type): # get available devices of a specified type
+    """device_type: e.g. switch, motion, acceleration, contact,
     temperature, battery, acceleration, threeAxis, humidity"""
 
     devices_of_type = smartthings.request_devices(device_type)
@@ -54,6 +54,7 @@ def find_of_type(device_type):
         return json.dumps({"error": "{} does not exist in device type, see list_types".format(device_type)})
 
 def toggle_switch(device_id_or_label):
+    """device_id_or_label: Use list_devices(), returned label or id field are usable as arg here"""
     device_type = "switch"
 
     devices = smartthings.request_devices(device_type)
@@ -70,9 +71,10 @@ def toggle_switch(device_id_or_label):
 
 
 def device_state(device_name):
+    """device_name: e.g. Hue white lamp 1"""
     for device_type in devices:
         ds = smartthings.request_devices(device_type)
-        ds = filter(lambda d: device_name in [ d.get("id"), d.get("label"), ], ds)
+        ds = filter(lambda d: device_name in [ d.get("id"), d.get("label"), ], ds) # adapted from original
 
         for d in ds:
             key = list(d["value"].keys())[-1]
