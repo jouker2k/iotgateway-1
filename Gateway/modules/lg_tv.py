@@ -69,6 +69,7 @@ def volume_down():
     return json.dumps({"volume_down": "done"})
 
 def open_url(url):
+    """url: E.g. https://www.google.co.uk/"""
     conn = tv.connect()
     if conn is not None:
         return conn
@@ -81,6 +82,7 @@ def open_url(url):
         return json.dumps({"lg_err": "issue launching app"})
 
 def launch_app(app):
+    """app: E.g. netflix"""
     conn = tv.connect()
     if conn is not None:
         return conn
@@ -94,6 +96,7 @@ def launch_app(app):
         return json.dumps({"lg_err": "issue launching app"})
 
 def launch_app_with_params(app, param):
+    """app: E.g. browser, param: E.g. {"target": "https://gomovies.to/"}"""
     conn = tv.connect()
     if conn is not None:
         return conn
@@ -143,13 +146,14 @@ def get_inputs():
     return tv.webos_client.get_inputs()
 
 def set_input(input):
+    """input: E.g. HDMI_1"""
     conn = tv.connect()
     if conn is not None:
         return conn
 
     return tv.webos_client.set_input(input)
 
-def get_audio_status(self):
+def get_audio_status():
     conn = tv.connect()
     if conn is not None:
         return conn
