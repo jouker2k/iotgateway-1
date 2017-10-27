@@ -62,6 +62,7 @@ def show_hues(bridge_key = bulb_key):
     return bulbs_available
 
 def light_switch(state, bulb_id, bridge_key = bulb_key):
+    """state: True or False, bulb_id: E.g. 1 -> [True, 1] -- Turn bulb 1 on"""
     api_url = 'http://{0}/api/{1}/lights/{2}/state'.format(bridge_ip(), bridge_key, bulb_id)
     data = json.dumps({"on":state})
     req = requests.put(api_url, data)
@@ -69,6 +70,7 @@ def light_switch(state, bulb_id, bridge_key = bulb_key):
     return req.text
 
 def light_brightness(state, bulb_id, bridge_key = bulb_key):
+    """state: 50, bulb_id: E.g. 1 -> [50, 1] -- 50 percent brightness on bulb 1"""
     api_url = 'http://{0}/api/{1}/lights/{2}/state'.format(bridge_ip(), bridge_key, bulb_id)
 
     if state < 1 or state > 100:

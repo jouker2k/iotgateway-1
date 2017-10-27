@@ -27,6 +27,7 @@ pubnub.subscribe().channels('embedded_devices').execute()
 
 # series of functions to control LEDs
 def LED_on(colour, auth_key = None):
+    """colour: E.g. red"""
     pnconfig.auth_key = auth_key
     pubnub = PubNub(pnconfig)
     req_id = idgen.id_generator(size = 10)
@@ -38,6 +39,7 @@ def LED_on(colour, auth_key = None):
         return publish.message
 
 def LED_off(colour, auth_key = None):
+    """colour: E.g. red"""
     pnconfig.auth_key = auth_key
     pubnub = PubNub(pnconfig)
     req_id = idgen.id_generator(size = 10)
@@ -51,6 +53,7 @@ def LED_off(colour, auth_key = None):
 
 
 def blink(colour, number_of_times, auth_key = None):
+    """colour: E.g. red, number_of_times: 5"""
     pnconfig.auth_key = auth_key
     pubnub = PubNub(pnconfig)
     req_id = idgen.id_generator(size = 10)
@@ -63,6 +66,7 @@ def blink(colour, number_of_times, auth_key = None):
         return publish.message
 
 def morse(text, colour, auth_key = None):
+    """text: 'hello world', colour: E.g. red"""
     pnconfig.auth_key = auth_key
     pubnub = PubNub(pnconfig)
     req_id = idgen.id_generator(size = 10)
