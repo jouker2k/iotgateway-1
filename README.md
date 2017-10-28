@@ -13,4 +13,5 @@ IoT Gateway on the Raspberry Pi 3 using PubNub + APIs + Security Policy.
 
 Additional modules  needed:
 * [PyMySQL (0.7.11)](https://github.com/PyMySQL/PyMySQL/) -> `pip install PyMySQL`
+* [PyImgur (0.6.0)](https://github.com/Damgaard/PyImgur) -> `pip install pyimgur`
 * [RPi.GPIO (0.6.3)](http://sourceforge.net/projects/raspberry-gpio-python/) -> `pip install python3-rpi.gpio`
